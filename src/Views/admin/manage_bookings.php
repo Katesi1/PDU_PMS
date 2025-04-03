@@ -1,13 +1,4 @@
-<?php
-// Đảm bảo chỉ cho admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header('Location: /pdu_pms_project/public/login');
-    exit;
-}
-
-// Include header layout
-include(dirname(__DIR__) . '/layouts/header.php');
-?>
+<?php include __DIR__ . '/../layouts/admin_layout.php'; ?>
 
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-primary text-white">
@@ -18,19 +9,19 @@ include(dirname(__DIR__) . '/layouts/header.php');
             <form action="/pdu_pms_project/public/admin/manage_bookings" method="get" class="row g-3">
                 <div class="col-md-3">
                     <label for="start_date" class="form-label">Từ ngày</label>
-                    <input type="date" class="form-control" id="start_date" name="start_date" value="<?= $filters['start_date'] ?? '' ?>">
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="<?= $data['filters']['start_date'] ?? '' ?>">
                 </div>
                 <div class="col-md-3">
                     <label for="end_date" class="form-label">Đến ngày</label>
-                    <input type="date" class="form-control" id="end_date" name="end_date" value="<?= $filters['end_date'] ?? '' ?>">
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="<?= $data['filters']['end_date'] ?? '' ?>">
                 </div>
                 <div class="col-md-3">
                     <label for="status" class="form-label">Trạng thái</label>
                     <select class="form-select" id="status" name="status">
                         <option value="">Tất cả</option>
-                        <option value="pending" <?= isset($filters['status']) && $filters['status'] === 'pending' ? 'selected' : '' ?>>Chờ duyệt</option>
-                        <option value="approved" <?= isset($filters['status']) && $filters['status'] === 'approved' ? 'selected' : '' ?>>Đã duyệt</option>
-                        <option value="rejected" <?= isset($filters['status']) && $filters['status'] === 'rejected' ? 'selected' : '' ?>>Từ chối</option>
+                        <option value="pending" <?= isset($data['filters']['status']) && $data['filters']['status'] === 'pending' ? 'selected' : '' ?>>Chờ duyệt</option>
+                        <option value="approved" <?= isset($data['filters']['status']) && $data['filters']['status'] === 'approved' ? 'selected' : '' ?>>Đã duyệt</option>
+                        <option value="rejected" <?= isset($data['filters']['status']) && $data['filters']['status'] === 'rejected' ? 'selected' : '' ?>>Từ chối</option>
                     </select>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
@@ -58,46 +49,54 @@ include(dirname(__DIR__) . '/layouts/header.php');
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($bookings as $booking): ?>
-                    <tr>
-                        <td><?= $booking['id'] ?></td>
-                        <td><?= htmlspecialchars($booking['user_name']) ?></td>
-                        <td><?= htmlspecialchars($booking['room_name']) ?></td>
-                        <td><?= date('d/m/Y H:i', strtotime($booking['start_time'])) ?></td>
-                        <td><?= date('d/m/Y H:i', strtotime($booking['end_time'])) ?></td>
-                        <td>
-                            <?php if ($booking['status'] == 'pending'): ?>
-                                <span class="badge bg-warning">Chờ duyệt</span>
-                            <?php elseif ($booking['status'] == 'approved'): ?>
-                                <span class="badge bg-success">Đã duyệt</span>
-                            <?php elseif ($booking['status'] == 'rejected'): ?>
-                                <span class="badge bg-danger">Từ chối</span>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <div class="btn-group">
-                                <a href="/pdu_pms_project/public/admin/view_booking/<?= $booking['id'] ?>" class="btn btn-sm btn-info">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <?php if ($booking['status'] == 'pending'): ?>
-                                <a href="/pdu_pms_project/public/admin/approve_booking/<?= $booking['id'] ?>" class="btn btn-sm btn-success">
-                                    <i class="fas fa-check"></i>
-                                </a>
-                                <a href="/pdu_pms_project/public/admin/reject_booking/<?= $booking['id'] ?>" class="btn btn-sm btn-danger">
-                                    <i class="fas fa-times"></i>
-                                </a>
+                    <?php if (isset($data['bookings']) && is_array($data['bookings'])): ?>
+                        <?php foreach ($data['bookings'] as $booking): ?>
+                        <tr>
+                            <td><?= $booking['id'] ?? '' ?></td>
+                            <td><?= htmlspecialchars($booking['user_name'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($booking['room_name'] ?? '') ?></td>
+                            <td><?= isset($booking['start_time']) ? date('d/m/Y H:i', strtotime($booking['start_time'])) : '' ?></td>
+                            <td><?= isset($booking['end_time']) ? date('d/m/Y H:i', strtotime($booking['end_time'])) : '' ?></td>
+                            <td>
+                                <?php if (($booking['status'] ?? '') == 'pending'): ?>
+                                    <span class="badge bg-warning">Chờ duyệt</span>
+                                <?php elseif (($booking['status'] ?? '') == 'approved'): ?>
+                                    <span class="badge bg-success">Đã duyệt</span>
+                                <?php elseif (($booking['status'] ?? '') == 'rejected'): ?>
+                                    <span class="badge bg-danger">Từ chối</span>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary">Không xác định</span>
                                 <?php endif; ?>
-                                <a href="/pdu_pms_project/public/admin/delete_booking/<?= $booking['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Bạn có chắc muốn xóa đặt phòng này?')">
-                                    <i class="fas fa-trash"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="/pdu_pms_project/public/admin/view_booking/<?= $booking['id'] ?? '' ?>" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <?php if (($booking['status'] ?? '') == 'pending'): ?>
+                                    <a href="/pdu_pms_project/public/admin/approve_booking/<?= $booking['id'] ?? '' ?>" class="btn btn-sm btn-success">
+                                        <i class="fas fa-check"></i>
+                                    </a>
+                                    <a href="/pdu_pms_project/public/admin/reject_booking/<?= $booking['id'] ?? '' ?>" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                    <?php endif; ?>
+                                    <a href="/pdu_pms_project/public/admin/delete_booking/<?= $booking['id'] ?? '' ?>" class="btn btn-sm btn-danger" onclick="return confirm('Bạn có chắc muốn xóa đặt phòng này?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="7" class="text-center">Không có đặt phòng nào được tìm thấy</td>
+                        </tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<?php include(dirname(__DIR__) . '/layouts/footer.php'); ?>
+<?php // Removed footer include as it's handled in admin_layout ?>

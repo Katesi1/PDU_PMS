@@ -1,5 +1,4 @@
-<?php include __DIR__ . '/../layouts/header.php'; ?>
-<?php include __DIR__ . '/../layouts/sidebar.php'; ?>
+<?php include __DIR__ . '/../layouts/admin_layout.php'; ?>
 <?php require_once __DIR__ . '/../../Helpers/BreadcrumbHelper.php'; ?>
 
 <div class="p-6 bg-gray-50">
@@ -294,5 +293,3 @@
         endTimeInput.addEventListener('change', updateRoomAvailability);
     });
 </script>
-
-<?php include __DIR__ . '/../layouts/footer.php'; ?>

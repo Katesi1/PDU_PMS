@@ -1,5 +1,4 @@
-<?php include __DIR__ . '/../layouts/header.php'; ?>
-<?php include __DIR__ . '/../layouts/sidebar.php'; ?>
+<?php include __DIR__ . '/../layouts/admin_layout.php'; ?>
 
 <div class="p-6 bg-gray-50">
     <div class="mb-6 flex items-center bg-white p-4 rounded-lg shadow-sm">
@@ -324,4 +323,3 @@
         }
     });
 </script>
-<?php include __DIR__ . '/../layouts/footer.php'; ?>

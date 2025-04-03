@@ -5,11 +5,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-// Include header layout
-include(dirname(__DIR__) . '/layouts/header.php');
-// Include admin sidebar
-include(dirname(__DIR__) . '/layouts/admin_sidebar.php');
-?>
+include __DIR__ . '/../layouts/admin_layout.php'; ?>
 
 <style>
 /* Cải thiện dropdown no-arrow */
@@ -313,6 +309,8 @@ include(dirname(__DIR__) . '/layouts/admin_sidebar.php');
 
 </div> <!-- Close admin-content div from admin_sidebar.php -->
 
+<!-- Add Chart.js library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script>
 // Room Usage Chart
 document.addEventListener('DOMContentLoaded', function() {
@@ -347,4 +345,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include(dirname(__DIR__) . '/layouts/footer.php'); ?>
+<?php // Removed footer include as it's handled in admin_layout ?>

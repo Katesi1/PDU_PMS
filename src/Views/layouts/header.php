@@ -131,6 +131,7 @@
             border-radius: 50px;
             padding: 6px 12px;
             transition: all 0.3s;
+            margin-right: 0;
         }
         
         .user-dropdown:hover, .user-dropdown:focus {
@@ -143,6 +144,10 @@
             overflow: hidden;
             animation: fadeIn 0.2s ease-in-out;
             min-width: 220px;
+            right: 0 !important;
+            left: auto !important;
+            margin-right: 0;
+            padding: 0;
         }
         
         @keyframes fadeIn {
@@ -169,12 +174,27 @@
             width: 20px;
             text-align: center;
         }
+
+        .navbar-nav {
+            align-items: center;
+        }
+
+        .nav-item.dropdown {
+            position: relative;
+            margin-right: 0;
+            padding-right: 0;
+        }
+
+        .dropdown-menu-end {
+            right: 0 !important;
+            left: auto !important;
+        }
     </style>
 </head>
 
 <body>
     <nav class="navbar navbar-expand-lg navbar-gradient navbar-dark fixed-top shadow">
-        <div class="container">
+        <div class="container-fluid px-3 px-md-4 px-lg-5">
             <!-- Logo and Main Nav -->
             <div class="d-flex align-items-center">
                 <a class="navbar-brand d-flex align-items-center fw-bold" href="/pdu_pms_project/public/">
@@ -200,7 +220,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <div class="collapse navbar-collapse" id="navbarContent">
+            <div class="collapse navbar-collapse justify-content-end" id="navbarContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
                     <!-- Mobile-only navigation links -->
                     <li class="nav-item d-lg-none">

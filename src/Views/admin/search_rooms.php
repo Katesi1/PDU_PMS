@@ -1,13 +1,4 @@
-<?php
-// Đảm bảo người dùng đã đăng nhập với vai trò admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header('Location: /pdu_pms_project/public/login');
-    exit;
-}
-
-// Include header layout
-include(dirname(__DIR__) . '/layouts/header.php');
-?>
+<?php include __DIR__ . '/../layouts/admin_layout.php'; ?>
 
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-primary text-white">
@@ -149,6 +140,4 @@ function confirmDelete(id, name) {
         window.location.href = '/pdu_pms_project/public/admin/delete_room/' + id;
     }
 }
-</script>
-
-<?php include(dirname(__DIR__) . '/layouts/footer.php'); ?> 
+</script> 

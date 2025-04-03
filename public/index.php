@@ -245,12 +245,13 @@ switch ($uri) {
         require_once __DIR__ . '/../src/Views/student/book_room.php';
         break;
     case 'admin/room_types':
-        $data = $adminController->manageRoomTypes();
-        require_once __DIR__ . '/../src/Views/admin/room_types.php';
+        // Chuyển hướng sang trang manage_room_types
+        header('Location: /pdu_pms_project/public/admin/manage_room_types');
+        exit;
         break;
     case 'admin/manage_room_types':
         $data = $adminController->manageRoomTypes();
-        require_once __DIR__ . '/../src/Views/admin/room_types.php';
+        require_once __DIR__ . '/../src/Views/admin/manage_room_types.php';
         break;
     case 'admin/add_room_type':
         $adminController->addRoomType($_POST);

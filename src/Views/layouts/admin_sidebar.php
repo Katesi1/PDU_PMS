@@ -6,7 +6,30 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 }
 
 // Get current page for active menu highlighting
-$current_page = basename($_SERVER['PHP_SELF'], '.php');
+$request_uri = $_SERVER['REQUEST_URI'];
+$current_page = '';
+
+// Extract the current page from the URI
+if (strpos($request_uri, '/admin/') !== false) {
+    $path = parse_url($request_uri, PHP_URL_PATH);
+    $path_parts = explode('/', $path);
+    
+    // Find the admin index in the path
+    $admin_index = array_search('admin', $path_parts);
+    
+    // Get the next segment after 'admin' if it exists
+    if ($admin_index !== false && isset($path_parts[$admin_index + 1]) && !empty($path_parts[$admin_index + 1])) {
+        $current_page = $path_parts[$admin_index + 1];
+    }
+}
+
+// Default to 'index' if on the main admin page
+if (empty($current_page) || $current_page === 'admin') {
+    $current_page = 'index';
+}
+
+// Debug information (remove in production)
+// echo "<!-- Current Page: " . $current_page . " -->";
 ?>
 
 <style>
@@ -299,12 +322,6 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a class="nav-link <?= $current_page == 'manage_room_types' ? 'active' : '' ?>" href="/pdu_pms_project/public/admin/manage_room_types">
                 <i class="fas fa-th-large"></i>
                 <span>Loại phòng</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link <?= $current_page == 'room_types' ? 'active' : '' ?>" href="/pdu_pms_project/public/admin/room_types">
-                <i class="fas fa-cog"></i>
-                <span>Cấu hình phòng</span>
             </a>
         </li>
 

@@ -316,16 +316,42 @@ class RoomModel
     // Đếm số lượng phòng theo loại phòng
     public function countRoomsByType()
     {
-        $sql = "SELECT rt.id, rt.name, COUNT(r.id) as room_count
-                FROM room_types rt
-                LEFT JOIN rooms r ON rt.id = r.room_type_id
-                GROUP BY rt.id, rt.name
-                ORDER BY rt.name ASC";
-        
         try {
+            // Lấy tất cả loại phòng
+            $sql = "SELECT id, name, description FROM room_types ORDER BY name ASC";
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $roomTypes = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            // Thêm trường room_count với giá trị mặc định là 0
+            foreach ($roomTypes as &$type) {
+                $type['room_count'] = 0;
+            }
+            
+            // Kiểm tra xem bảng rooms có cột room_type_id không
+            $checkColumnSql = "SHOW COLUMNS FROM rooms LIKE 'room_type_id'";
+            $stmt = $this->db->prepare($checkColumnSql);
+            $stmt->execute();
+            
+            if ($stmt->rowCount() > 0) {
+                // Nếu có cột room_type_id, lấy số lượng phòng cho mỗi loại
+                $countSql = "SELECT room_type_id, COUNT(*) as count FROM rooms GROUP BY room_type_id";
+                $stmt = $this->db->prepare($countSql);
+                $stmt->execute();
+                $counts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                
+                // Cập nhật số lượng phòng cho từng loại
+                foreach ($counts as $count) {
+                    foreach ($roomTypes as &$type) {
+                        if ($type['id'] == $count['room_type_id']) {
+                            $type['room_count'] = $count['count'];
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            return $roomTypes;
         } catch (\PDOException $e) {
             error_log("Error counting rooms by type: " . $e->getMessage());
             return [];
@@ -350,7 +376,12 @@ class RoomModel
     {
         try {
             $stmt = $this->db->prepare("INSERT INTO room_types (name, description) VALUES (?, ?)");
-            return $stmt->execute([$name, $description]);
+            $success = $stmt->execute([$name, $description]);
+            
+            if ($success) {
+                return $this->db->lastInsertId(); // Trả về ID của loại phòng mới được thêm vào
+            }
+            return false;
         } catch (\PDOException $e) {
             error_log("Error adding room type: " . $e->getMessage());
             return false;

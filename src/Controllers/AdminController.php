@@ -732,18 +732,11 @@ class AdminController
             exit;
         }
         
-        // Lấy tất cả loại phòng
-        $roomTypes = $this->roomModel->getRoomTypes();
-        
-        // Gán mặc định số phòng cho mỗi loại là 0
-        $typeCount = [];
-        foreach ($roomTypes as $type) {
-            $typeCount[$type['id']] = 0;
-        }
+        // Lấy danh sách loại phòng kèm theo số lượng phòng
+        $roomTypes = $this->roomModel->countRoomsByType();
         
         return [
-            'roomTypes' => $roomTypes,
-            'typeCount' => $typeCount
+            'roomTypes' => $roomTypes
         ];
     }
     
@@ -759,21 +752,22 @@ class AdminController
             $description = $data['description'] ?? '';
             
             if (empty($name)) {
-                header('Location: /pdu_pms_project/public/admin/room_types?error=Tên loại phòng không được để trống');
+                header('Location: /pdu_pms_project/public/admin/manage_room_types?error=Tên loại phòng không được để trống');
                 exit;
             }
             
-            $success = $this->roomModel->addRoomType($name, $description);
+            $roomTypeId = $this->roomModel->addRoomType($name, $description);
             
-            if ($success) {
-                header('Location: /pdu_pms_project/public/admin/room_types?message=Thêm loại phòng thành công');
+            if ($roomTypeId) {
+                // Chuyển hướng đến trang manage_room_types với thông báo thành công
+                header('Location: /pdu_pms_project/public/admin/manage_room_types?message=Thêm loại phòng thành công');
             } else {
-                header('Location: /pdu_pms_project/public/admin/room_types?error=Không thể thêm loại phòng');
+                header('Location: /pdu_pms_project/public/admin/manage_room_types?error=Không thể thêm loại phòng');
             }
             exit;
         }
         
-        header('Location: /pdu_pms_project/public/admin/room_types');
+        header('Location: /pdu_pms_project/public/admin/manage_room_types');
         exit;
     }
     
@@ -790,21 +784,21 @@ class AdminController
             $description = $data['description'] ?? '';
             
             if (empty($id) || empty($name)) {
-                header('Location: /pdu_pms_project/public/admin/room_types?error=ID và tên loại phòng không được để trống');
+                header('Location: /pdu_pms_project/public/admin/manage_room_types?error=ID và tên loại phòng không được để trống');
                 exit;
             }
             
             $success = $this->roomModel->updateRoomType($id, $name, $description);
             
             if ($success) {
-                header('Location: /pdu_pms_project/public/admin/room_types?message=Cập nhật loại phòng thành công');
+                header('Location: /pdu_pms_project/public/admin/manage_room_types?message=Cập nhật loại phòng thành công');
             } else {
-                header('Location: /pdu_pms_project/public/admin/room_types?error=Không thể cập nhật loại phòng');
+                header('Location: /pdu_pms_project/public/admin/manage_room_types?error=Không thể cập nhật loại phòng');
             }
             exit;
         }
         
-        header('Location: /pdu_pms_project/public/admin/room_types');
+        header('Location: /pdu_pms_project/public/admin/manage_room_types');
         exit;
     }
     
@@ -818,23 +812,23 @@ class AdminController
         $id = $data['id'] ?? 0;
         
         if (empty($id)) {
-            header('Location: /pdu_pms_project/public/admin/room_types?error=ID loại phòng không hợp lệ');
+            header('Location: /pdu_pms_project/public/admin/manage_room_types?error=ID loại phòng không hợp lệ');
             exit;
         }
         
         // Kiểm tra xem có phòng nào thuộc loại này không
         $rooms = $this->roomModel->getRoomsByType($id);
         if (!empty($rooms)) {
-            header('Location: /pdu_pms_project/public/admin/room_types?error=Không thể xóa loại phòng vì có ' . count($rooms) . ' phòng thuộc loại này');
+            header('Location: /pdu_pms_project/public/admin/manage_room_types?error=Không thể xóa loại phòng vì có ' . count($rooms) . ' phòng thuộc loại này');
             exit;
         }
         
         $success = $this->roomModel->deleteRoomType($id);
         
         if ($success) {
-            header('Location: /pdu_pms_project/public/admin/room_types?message=Xóa loại phòng thành công');
+            header('Location: /pdu_pms_project/public/admin/manage_room_types?message=Xóa loại phòng thành công');
         } else {
-            header('Location: /pdu_pms_project/public/admin/room_types?error=Không thể xóa loại phòng');
+            header('Location: /pdu_pms_project/public/admin/manage_room_types?error=Không thể xóa loại phòng');
         }
         exit;
     }
