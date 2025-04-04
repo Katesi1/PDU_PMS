@@ -2,13 +2,14 @@
 namespace Models;
 
 use PDO;
-use Database\Database;
+use Config\Database;
 
 class ScheduleModel {
     private $db;
 
     public function __construct() {
-        $this->db = new Database();
+        $database = new Database();
+        $this->db = $database->getConnection();
     }
 
     /**
@@ -40,7 +41,7 @@ class ScheduleModel {
                     b.start_time ASC";
                     
         try {
-            $stmt = $this->db->connect()->prepare($sql);
+            $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':class_code', $classCode);
             $stmt->execute();
             
@@ -89,7 +90,7 @@ class ScheduleModel {
         $sql .= " ORDER BY b.start_time ASC";
         
         try {
-            $stmt = $this->db->connect()->prepare($sql);
+            $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':room_id', $roomId);
             
             if ($startDate) {

@@ -248,23 +248,13 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             pageLength: 10,
             order: [[0, 'desc']],
-            responsive: true,
-            dom: '<"d-flex justify-content-between align-items-center mb-3"<"d-flex align-items-center"l><"d-flex align-items-center"f>>rt<"d-flex justify-content-between"ip>'
         });
-        
-        // Thêm placeholder cho ô tìm kiếm
-        $('.dataTables_filter input').attr('placeholder', 'Tìm kiếm...');
-        
-        // Thêm class Bootstrap vào các phần tử
-        $('.dataTables_length select').addClass('form-select form-select-sm');
-        $('.dataTables_filter input').addClass('form-control form-control-sm');
     }
     
-    // Khởi tạo biểu đồ thống kê
-    if (window.Chart) {
-        // Biểu đồ thống kê theo trạng thái
-        const statusCtx = document.getElementById('bookingStatusChart').getContext('2d');
-        const statusChart = new Chart(statusCtx, {
+    // Biểu đồ trạng thái đặt phòng
+    var ctx = document.getElementById('bookingStatusChart').getContext('2d');
+    if (ctx) {
+        var myChart = new Chart(ctx, {
             type: 'pie',
             data: {
                 labels: ['Đã duyệt', 'Chờ duyệt', 'Từ chối'],
@@ -294,16 +284,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            usePointStyle: true,
-                            padding: 20
+                            boxWidth: 15,
+                            padding: 15
                         }
                     },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                let label = context.label || '';
-                                let value = context.formattedValue || '';
-                                return `${label}: ${value} đặt phòng`;
+                                var label = context.label || '';
+                                var value = context.raw || 0;
+                                return label + ': ' + value + ' đặt phòng';
                             }
                         }
                     }
@@ -315,9 +305,9 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php
-// Lấy nội dung đã được output buffering
+// Lấy nội dung đã buffer và xóa buffer
 $content = ob_get_clean();
 
-// Bao gồm layout
+// Include layout để hiển thị nội dung
 include __DIR__ . '/../layouts/student_layout.php';
 ?>

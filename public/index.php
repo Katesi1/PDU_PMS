@@ -11,6 +11,7 @@ require_once __DIR__ . '/../src/Models/TimetableModel.php';
 require_once __DIR__ . '/../src/Models/BookingModel.php';
 require_once __DIR__ . '/../src/Models/EquipmentModel.php';
 require_once __DIR__ . '/../src/Models/MaintenanceRequestModel.php';
+require_once __DIR__ . '/../src/Models/ScheduleModel.php';
 require_once __DIR__ . '/../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../src/Controllers/AdminController.php';
 require_once __DIR__ . '/../src/Controllers/TeacherController.php';
