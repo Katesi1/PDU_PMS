@@ -732,8 +732,32 @@ class AdminController
             exit;
         }
         
-        // Lấy danh sách loại phòng kèm theo số lượng phòng
-        $roomTypes = $this->roomModel->countRoomsByType();
+        // Trực tiếp lấy danh sách loại phòng
+        $roomTypes = $this->roomModel->getRoomTypes();
+        
+        // Debug - in ra lỗi nếu không có dữ liệu
+        if (empty($roomTypes)) {
+            error_log("WARNING: Không tìm thấy room_types nào!");
+            
+            // Tạo dữ liệu mẫu để kiểm tra view
+            $roomTypes = [
+                [
+                    'id' => 1,
+                    'name' => 'Phòng lý thuyết (Debug)',
+                    'description' => 'Dữ liệu mẫu để kiểm tra view',
+                    'room_count' => 0
+                ],
+                [
+                    'id' => 2,
+                    'name' => 'Phòng máy tính (Debug)',
+                    'description' => 'Dữ liệu mẫu để kiểm tra view',
+                    'room_count' => 3
+                ]
+            ];
+            error_log("Đã tạo dữ liệu mẫu cho debug với " . count($roomTypes) . " phần tử");
+        } else {
+            error_log("Tìm thấy " . count($roomTypes) . " loại phòng từ cơ sở dữ liệu");
+        }
         
         return [
             'roomTypes' => $roomTypes

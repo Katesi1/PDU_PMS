@@ -18,8 +18,67 @@ class TeacherController {
             header('Location: /pdu_pms_project/public/login');
             exit;
         }
-        $bookings = $this->bookingModel->getBookingsByTeacher($_SESSION['user_id']);
-        return ['bookings' => $bookings];
+        
+        // Lấy dữ liệu đặt phòng của giáo viên
+        $teacher_id = $_SESSION['user_id'];
+        $bookings = $this->bookingModel->getBookingsByTeacher($teacher_id);
+        
+        // Lấy dữ liệu thống kê theo trạng thái
+        $status_stats = [
+            'waiting' => 0,
+            'approved' => 0,
+            'rejected' => 0
+        ];
+        
+        // Lấy dữ liệu thống kê theo ngày trong tuần
+        $day_stats = [0, 0, 0, 0, 0, 0, 0]; // [CN, T2, T3, T4, T5, T6, T7]
+        
+        // Đếm số lượng đặt phòng hôm nay
+        $today_bookings = [];
+        $today = date('Y-m-d');
+        
+        foreach ($bookings as $booking) {
+            // Thống kê theo trạng thái
+            if ($booking['status'] === 'chờ duyệt') {
+                $status_stats['waiting']++;
+            } elseif ($booking['status'] === 'được duyệt') {
+                $status_stats['approved']++;
+            } elseif ($booking['status'] === 'từ chối') {
+                $status_stats['rejected']++;
+            }
+            
+            // Thống kê theo ngày trong tuần
+            $booking_date = date('Y-m-d', strtotime($booking['start_time']));
+            $day_of_week = date('w', strtotime($booking_date)); // 0 (Chủ nhật) đến 6 (Thứ 7)
+            $day_stats[$day_of_week]++;
+            
+            // Đếm số đặt phòng hôm nay
+            if ($booking_date === $today) {
+                $today_bookings[] = $booking;
+            }
+        }
+        
+        // Lấy tổng số phòng
+        $total_rooms = count($this->roomModel->getAllRooms());
+        
+        // Lấy số phòng đang trống vào thời điểm hiện tại
+        $now = date('Y-m-d H:i:s');
+        $available_rooms = 0;
+        $rooms = $this->roomModel->getAllRooms();
+        foreach ($rooms as $room) {
+            if (!$this->bookingModel->checkBookingConflict($room['id'], $now, $now)) {
+                $available_rooms++;
+            }
+        }
+        
+        return [
+            'bookings' => $bookings,
+            'status_stats' => $status_stats,
+            'day_stats' => $day_stats,
+            'today_bookings' => $today_bookings,
+            'total_rooms' => $total_rooms,
+            'available_rooms' => $available_rooms
+        ];
     }
 
     public function bookRoom()
@@ -33,6 +92,12 @@ class TeacherController {
             $teacher_id = $_SESSION['user_id'] ?? null;
 
             if (!$teacher_id) {
+                if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                    header('Content-Type: application/json');
+                    echo json_encode(['error' => 'Bạn cần đăng nhập để đặt phòng']);
+                    exit;
+                }
+                
                 return [
                     'error' => 'Bạn cần đăng nhập để đặt phòng',
                     'rooms' => $this->roomModel->getAllRooms(),
@@ -44,8 +109,15 @@ class TeacherController {
                 // Chuyển đổi và kiểm tra định dạng thời gian
                 $start_timestamp = strtotime($start_time);
                 $end_timestamp = strtotime($end_time);
+                $now_timestamp = time();
                 
                 if (!$start_timestamp || !$end_timestamp) {
+                    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                        header('Content-Type: application/json');
+                        echo json_encode(['error' => 'Định dạng thời gian không hợp lệ']);
+                        exit;
+                    }
+                    
                     return [
                         'error' => 'Định dạng thời gian không hợp lệ',
                         'rooms' => $this->roomModel->getAllRooms(),
@@ -53,10 +125,47 @@ class TeacherController {
                     ];
                 }
                 
+                // Kiểm tra thời gian bắt đầu phải trong tương lai
+                if ($start_timestamp <= $now_timestamp) {
+                    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                        header('Content-Type: application/json');
+                        echo json_encode(['error' => 'Không thể đặt phòng trong quá khứ. Vui lòng chọn thời gian bắt đầu từ hiện tại trở đi.']);
+                        exit;
+                    }
+                    
+                    return [
+                        'error' => 'Không thể đặt phòng trong quá khứ. Vui lòng chọn thời gian bắt đầu từ hiện tại trở đi.',
+                        'rooms' => $this->roomModel->getAllRooms(),
+                        'available_rooms' => []
+                    ];
+                }
+                
                 // Kiểm tra thời gian kết thúc phải sau thời gian bắt đầu
                 if ($end_timestamp <= $start_timestamp) {
+                    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                        header('Content-Type: application/json');
+                        echo json_encode(['error' => 'Thời gian kết thúc phải muộn hơn thời gian bắt đầu']);
+                        exit;
+                    }
+                    
                     return [
-                        'error' => 'Thời gian kết thúc phải sau thời gian bắt đầu',
+                        'error' => 'Thời gian kết thúc phải muộn hơn thời gian bắt đầu',
+                        'rooms' => $this->roomModel->getAllRooms(),
+                        'available_rooms' => []
+                    ];
+                }
+                
+                // Kiểm tra thời lượng đặt phòng tối thiểu là 30 phút
+                $duration_minutes = ($end_timestamp - $start_timestamp) / 60;
+                if ($duration_minutes < 30) {
+                    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                        header('Content-Type: application/json');
+                        echo json_encode(['error' => 'Thời lượng đặt phòng tối thiểu là 30 phút']);
+                        exit;
+                    }
+                    
+                    return [
+                        'error' => 'Thời lượng đặt phòng tối thiểu là 30 phút',
                         'rooms' => $this->roomModel->getAllRooms(),
                         'available_rooms' => []
                     ];
@@ -67,10 +176,30 @@ class TeacherController {
                 
                 // Kiểm tra xung đột lịch đặt phòng
                 if ($this->bookingModel->checkBookingConflict($room_id, $formatted_start, $formatted_end)) {
+                    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                        header('Content-Type: application/json');
+                        echo json_encode(['error' => 'Phòng đã được đặt trong khoảng thời gian này']);
+                        exit;
+                    }
+                    
+                    // Lấy danh sách phòng trống để hiển thị lại
+                    $allRooms = $this->roomModel->getAllRooms();
+                    $availableRooms = [];
+                    $bookedRooms = [];
+                    
+                    foreach ($allRooms as $room) {
+                        if (!$this->bookingModel->checkBookingConflict($room['id'], $formatted_start, $formatted_end)) {
+                            $availableRooms[] = $room;
+                        } else {
+                            $bookedRooms[] = $room;
+                        }
+                    }
+                    
                     return [
                         'error' => 'Phòng đã được đặt trong khoảng thời gian này',
-                        'rooms' => $this->roomModel->getAllRooms(),
-                        'available_rooms' => []
+                        'rooms' => $allRooms,
+                        'available_rooms' => $availableRooms,
+                        'booked_rooms' => $bookedRooms
                     ];
                 }
 
@@ -85,12 +214,38 @@ class TeacherController {
                 ];
 
                 if ($this->bookingModel->addBooking($bookingData)) {
+                    // Lấy thông tin phòng vừa đặt
+                    $room = $this->roomModel->getRoomById($room_id);
+                    $roomName = $room ? $room['name'] : 'Phòng không xác định';
+                    
+                    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                        header('Content-Type: application/json');
+                        echo json_encode([
+                            'success' => 'Đặt phòng thành công',
+                            'booking' => [
+                                'room_id' => $room_id,
+                                'room_name' => $roomName,
+                                'class_code' => $class_code,
+                                'start_time' => $formatted_start,
+                                'end_time' => $formatted_end,
+                                'status' => 'được duyệt'
+                            ]
+                        ]);
+                        exit;
+                    }
+                    
                     return [
                         'success' => 'Đặt phòng thành công',
                         'rooms' => $this->roomModel->getAllRooms(),
                         'available_rooms' => []
                     ];
                 } else {
+                    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                        header('Content-Type: application/json');
+                        echo json_encode(['error' => 'Đặt phòng thất bại, vui lòng thử lại']);
+                        exit;
+                    }
+                    
                     return [
                         'error' => 'Đặt phòng thất bại, vui lòng thử lại',
                         'rooms' => $this->roomModel->getAllRooms(),
@@ -98,6 +253,12 @@ class TeacherController {
                     ];
                 }
             } else {
+                if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                    header('Content-Type: application/json');
+                    echo json_encode(['error' => 'Vui lòng điền đầy đủ thông tin']);
+                    exit;
+                }
+                
                 return [
                     'error' => 'Vui lòng điền đầy đủ thông tin',
                     'rooms' => $this->roomModel->getAllRooms(),
@@ -105,26 +266,92 @@ class TeacherController {
                 ];
             }
         }
-
-        // Lấy danh sách phòng khả dụng (trống) nếu có start_time và end_time
-        $start_time = $_POST['start_time'] ?? null;
-        $end_time = $_POST['end_time'] ?? null;
+        
+        // Nếu là GET request, hiển thị form đặt phòng
+        $all_rooms = $this->roomModel->getAllRooms();
+        
+        // Kiểm tra nếu đã có start_time và end_time được truyền vào thì lọc phòng trống
         $available_rooms = [];
-        if ($start_time && $end_time) {
-            $start_time = date('Y-m-d H:i:s', strtotime($start_time));
-            $end_time = date('Y-m-d H:i:s', strtotime($end_time));
-            $rooms = $this->roomModel->getAllRooms();
-            foreach ($rooms as $room) {
-                if (!$this->bookingModel->checkBookingConflict($room['id'], $start_time, $end_time)) {
-                    $available_rooms[] = $room['id'];
+
+        if (isset($_POST['start_time']) && isset($_POST['end_time'])) {
+            $start_time = $_POST['start_time'];
+            $end_time = $_POST['end_time'];
+            
+            // Định dạng lại thời gian
+            $start_timestamp = strtotime($start_time);
+            $end_timestamp = strtotime($end_time);
+            
+            if ($start_timestamp && $end_timestamp && $start_timestamp < $end_timestamp) {
+                $formatted_start = date('Y-m-d H:i:s', $start_timestamp);
+                $formatted_end = date('Y-m-d H:i:s', $end_timestamp);
+                
+                // Lọc ra phòng trống
+                foreach ($all_rooms as $room) {
+                    if (!$this->bookingModel->checkBookingConflict($room['id'], $formatted_start, $formatted_end)) {
+                        $available_rooms[] = $room['id']; // Chỉ lưu ID phòng trống
+                    }
                 }
             }
         }
-
+        
         return [
-            'rooms' => $this->roomModel->getAllRooms(),
+            'rooms' => $all_rooms,
             'available_rooms' => $available_rooms
         ];
+    }
+    
+    // Hàm trợ giúp để lấy dữ liệu đặt phòng của giáo viên
+    private function getTeacherBookingsData($teacher_id) {
+        // Lấy tất cả các đặt phòng của giáo viên
+        $bookings = $this->bookingModel->getBookingsByTeacher($teacher_id);
+        
+        // Thêm thông tin phòng vào dữ liệu đặt phòng
+        $bookingsWithRoomInfo = [];
+        foreach ($bookings as $booking) {
+            $room = $this->roomModel->getRoomById($booking['room_id']);
+            if ($room) {
+                $booking['room_name'] = $room['name'];
+                $bookingsWithRoomInfo[] = $booking;
+            }
+        }
+        
+        // Sắp xếp theo thời gian bắt đầu (gần nhất lên đầu)
+        usort($bookingsWithRoomInfo, function($a, $b) {
+            return strtotime($b['start_time']) - strtotime($a['start_time']);
+        });
+        
+        return $bookingsWithRoomInfo;
+    }
+    
+    // API endpoint cho danh sách đặt phòng của giáo viên
+    public function getTeacherBookings() {
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Không có quyền truy cập']);
+            exit;
+        }
+        
+        $teacher_id = $_SESSION['user_id'];
+        $bookings = $this->getTeacherBookingsData($teacher_id);
+        
+        header('Content-Type: application/json');
+        echo json_encode(['bookings' => $bookings]);
+        exit;
+    }
+
+    // API endpoint để lấy tất cả các phòng
+    public function getAllRooms() {
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Không có quyền truy cập']);
+            exit;
+        }
+        
+        $rooms = $this->roomModel->getAllRooms();
+        
+        header('Content-Type: application/json');
+        echo json_encode(['rooms' => $rooms]);
+        exit;
     }
 
     // Phương thức tìm kiếm phòng
@@ -235,5 +462,78 @@ class TeacherController {
                 'min_capacity' => $min_capacity
             ]
         ];
+    }
+    
+    // Phương thức API trả về danh sách phòng trống dành cho AJAX
+    public function getAvailableRooms()
+    {
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Không có quyền truy cập']);
+            exit;
+        }
+        
+        // Nhận dữ liệu từ POST request
+        $start_time = $_POST['start_time'] ?? null;
+        $end_time = $_POST['end_time'] ?? null;
+        $class_code = $_POST['class_code'] ?? '';
+        
+        if (!$start_time || !$end_time) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Thiếu thông tin thời gian']);
+            exit;
+        }
+        
+        // Chuyển đổi và kiểm tra định dạng thời gian
+        $start_timestamp = strtotime($start_time);
+        $end_timestamp = strtotime($end_time);
+        $now_timestamp = time();
+        
+        if (!$start_timestamp || !$end_timestamp) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Định dạng thời gian không hợp lệ']);
+            exit;
+        }
+        
+        // Không cần kiểm tra thời gian trong quá khứ khi chỉ kiểm tra phòng trống
+        // Kiểm tra thời gian kết thúc phải sau thời gian bắt đầu
+        if ($end_timestamp <= $start_timestamp) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Thời gian kết thúc phải muộn hơn thời gian bắt đầu']);
+            exit;
+        }
+        
+        // Kiểm tra thời lượng đặt phòng tối thiểu là 30 phút
+        $duration_minutes = ($end_timestamp - $start_timestamp) / 60;
+        if ($duration_minutes < 30) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Thời lượng đặt phòng tối thiểu là 30 phút']);
+            exit;
+        }
+        
+        $formatted_start = date('Y-m-d H:i:s', $start_timestamp);
+        $formatted_end = date('Y-m-d H:i:s', $end_timestamp);
+        
+        // Lấy tất cả các phòng
+        $all_rooms = $this->roomModel->getAllRooms();
+        $available_rooms = [];
+        $booked_rooms = [];
+        
+        // Lọc ra các phòng còn trống và đã đặt trong khoảng thời gian đã chọn
+        foreach ($all_rooms as $room) {
+            if (!$this->bookingModel->checkBookingConflict($room['id'], $formatted_start, $formatted_end)) {
+                $available_rooms[] = $room;
+            } else {
+                $booked_rooms[] = $room;
+            }
+        }
+        
+        header('Content-Type: application/json');
+        echo json_encode([
+            'rooms' => $all_rooms,
+            'available_rooms' => $available_rooms,
+            'booked_rooms' => $booked_rooms
+        ]);
+        exit;
     }
 }

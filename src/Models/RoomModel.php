@@ -90,14 +90,20 @@ class RoomModel
     public function getRoomsByType($typeId)
     {
         try {
-            // Vì hiện tại không có cột room_type_id trong bảng rooms
-            // Tạm thời trả về danh sách tất cả các phòng
+            // Cột room_type_id không tồn tại trong bảng rooms
+            // Tạm thời trả về mảng rỗng để cho phép xóa loại phòng
+            error_log("RoomModel::getRoomsByType - Kiểm tra phòng thuộc loại $typeId - trả về mảng rỗng");
+            return [];
+            
+            // Code cũ:
+            /*
             $stmt = $this->db->prepare("
                 SELECT * FROM rooms 
                 ORDER BY name ASC
             ");
             $stmt->execute();
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            */
         } catch (\PDOException $e) {
             error_log("Error getting rooms by type: " . $e->getMessage());
             return [];
@@ -107,9 +113,49 @@ class RoomModel
     // Lấy danh sách loại phòng
     public function getRoomTypes()
     {
-        $stmt = $this->db->prepare("SELECT * FROM room_types ORDER BY name ASC");
-        $stmt->execute();
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        try {
+            // Mặc định lấy tất cả các trường, bao gồm trường created_at nếu có
+            $stmt = $this->db->prepare("SELECT * FROM room_types ORDER BY name ASC");
+            $stmt->execute();
+            $types = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            // Log cho debug
+            error_log("RoomModel::getRoomTypes - Tìm thấy " . count($types) . " loại phòng.");
+            if (count($types) > 0) {
+                error_log("RoomModel::getRoomTypes - Mẫu dữ liệu đầu tiên: " . print_r($types[0], true));
+                error_log("RoomModel::getRoomTypes - Các trường của dữ liệu: " . implode(", ", array_keys($types[0])));
+            } else {
+                error_log("RoomModel::getRoomTypes - Không tìm thấy loại phòng nào.");
+                // Kiểm tra xem bảng room_types có tồn tại không
+                $checkTableSql = "SHOW TABLES LIKE 'room_types'";
+                $stmt = $this->db->prepare($checkTableSql);
+                $stmt->execute();
+                $tableExists = $stmt->rowCount() > 0;
+                error_log("RoomModel::getRoomTypes - Bảng room_types tồn tại: " . ($tableExists ? 'Có' : 'Không'));
+                
+                // Nếu bảng tồn tại, kiểm tra cấu trúc bảng
+                if ($tableExists) {
+                    $describeSql = "DESCRIBE room_types";
+                    $stmt = $this->db->prepare($describeSql);
+                    $stmt->execute();
+                    $columns = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    error_log("RoomModel::getRoomTypes - Cấu trúc bảng room_types: " . print_r($columns, true));
+                }
+            }
+            
+            // Cho mỗi loại phòng, thêm trường room_count nếu cần
+            foreach ($types as &$type) {
+                if (!isset($type['room_count'])) {
+                    $type['room_count'] = 0;
+                }
+            }
+            
+            return $types;
+        } catch (\PDOException $e) {
+            error_log("RoomModel::getRoomTypes - Lỗi: " . $e->getMessage());
+            // Trả về mảng rỗng thay vì gây lỗi
+            return [];
+        }
     }
 
     // Phương thức tìm kiếm phòng theo các tiêu chí
@@ -319,9 +365,25 @@ class RoomModel
         try {
             // Lấy tất cả loại phòng
             $sql = "SELECT id, name, description FROM room_types ORDER BY name ASC";
+            error_log("RoomModel::countRoomsByType - SQL Query: " . $sql);
+            
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
             $roomTypes = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            // Log chi tiết
+            $count = count($roomTypes);
+            error_log("RoomModel::countRoomsByType - Tìm thấy " . $count . " loại phòng.");
+            
+            if ($count === 0) {
+                error_log("RoomModel::countRoomsByType - Không tìm thấy loại phòng nào.");
+                return [];
+            }
+            
+            // Log mẫu kết quả
+            if ($count > 0) {
+                error_log("RoomModel::countRoomsByType - Mẫu dữ liệu đầu tiên: " . print_r($roomTypes[0], true));
+            }
             
             // Thêm trường room_count với giá trị mặc định là 0
             foreach ($roomTypes as &$type) {
@@ -330,25 +392,46 @@ class RoomModel
             
             // Kiểm tra xem bảng rooms có cột room_type_id không
             $checkColumnSql = "SHOW COLUMNS FROM rooms LIKE 'room_type_id'";
+            error_log("RoomModel::countRoomsByType - Kiểm tra cột room_type_id: " . $checkColumnSql);
+            
             $stmt = $this->db->prepare($checkColumnSql);
             $stmt->execute();
             
-            if ($stmt->rowCount() > 0) {
+            $hasRoomTypeColumn = $stmt->rowCount() > 0;
+            error_log("RoomModel::countRoomsByType - Bảng rooms có cột room_type_id: " . ($hasRoomTypeColumn ? 'Có' : 'Không'));
+            
+            if ($hasRoomTypeColumn) {
                 // Nếu có cột room_type_id, lấy số lượng phòng cho mỗi loại
-                $countSql = "SELECT room_type_id, COUNT(*) as count FROM rooms GROUP BY room_type_id";
+                $countSql = "SELECT room_type_id, COUNT(*) as count FROM rooms WHERE room_type_id IS NOT NULL GROUP BY room_type_id";
+                error_log("RoomModel::countRoomsByType - SQL đếm phòng: " . $countSql);
+                
                 $stmt = $this->db->prepare($countSql);
                 $stmt->execute();
                 $counts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                
+                // Log chi tiết đếm
+                error_log("RoomModel::countRoomsByType - Tìm thấy " . count($counts) . " nhóm phòng.");
+                if (count($counts) > 0) {
+                    error_log("RoomModel::countRoomsByType - Mẫu đếm: " . print_r($counts[0], true));
+                }
                 
                 // Cập nhật số lượng phòng cho từng loại
                 foreach ($counts as $count) {
                     foreach ($roomTypes as &$type) {
                         if ($type['id'] == $count['room_type_id']) {
-                            $type['room_count'] = $count['count'];
+                            $type['room_count'] = (int)$count['count'];
                             break;
                         }
                     }
                 }
+            } else {
+                error_log("RoomModel::countRoomsByType - Bảng rooms không có cột room_type_id.");
+            }
+            
+            // Log kết quả cuối cùng trước khi trả về
+            error_log("RoomModel::countRoomsByType - Kết quả cuối: " . count($roomTypes) . " loại phòng");
+            if (count($roomTypes) > 0) {
+                error_log("RoomModel::countRoomsByType - Mẫu kết quả cuối: " . print_r($roomTypes[0], true));
             }
             
             return $roomTypes;

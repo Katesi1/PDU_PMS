@@ -1,14 +1,22 @@
 <?php
+// Đảm bảo chỉ cho student
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
+    header('Location: /pdu_pms_project/public/login');
+    exit;
+}
+
 $pageTitle = "Đặt Phòng Học";
-require_once __DIR__ . '/../layouts/header.php';
+
+// Bắt đầu output buffering
+ob_start();
 ?>
 
-<div class="container-fluid py-4">
+<div class="container-fluid">
     <div class="row">
         <div class="col-12 mb-3">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="/pdu_pms_project/public/student/dashboard">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="/pdu_pms_project/public/student">Trang chủ</a></li>
                     <li class="breadcrumb-item"><a href="/pdu_pms_project/public/student/search_rooms">Tìm kiếm phòng</a></li>
                     <?php if (isset($data['room'])): ?>
                     <li class="breadcrumb-item"><a href="/pdu_pms_project/public/student/room_detail/<?php echo $data['room']['id']; ?>">Chi tiết phòng</a></li>
@@ -71,14 +79,27 @@ require_once __DIR__ . '/../layouts/header.php';
                                 <label for="room_id" class="form-label fw-bold">Chọn phòng</label>
                                 <select class="form-select" id="room_id" name="room_id" required>
                                     <option value="" selected disabled>-- Chọn phòng học --</option>
-                                    <?php if (isset($data['available_rooms'])): ?>
-                                        <?php foreach($data['available_rooms'] as $room): ?>
-                                            <option value="<?php echo $room['id']; ?>" 
-                                                data-capacity="<?php echo $room['capacity']; ?>"
-                                                data-type="<?php echo $room['room_type_name']; ?>"
-                                                data-location="<?php echo $room['location']; ?>">
-                                                <?php echo htmlspecialchars($room['name']); ?>
-                                            </option>
+                                    <?php if (isset($_POST['start_time']) && isset($_POST['end_time'])): ?>
+                                        <?php if (!empty($data['available_rooms'])): ?>
+                                            <?php foreach($data['rooms'] as $room): ?>
+                                                <?php if (in_array($room['id'], $data['available_rooms'])): ?>
+                                                <option value="<?php echo $room['id']; ?>" 
+                                                    data-capacity="<?php echo $room['capacity']; ?>"
+                                                    data-type="<?php echo $room['room_type_name'] ?? $room['type_name'] ?? 'Không có thông tin'; ?>"
+                                                    data-location="<?php echo $room['location']; ?>">
+                                                    <?php echo htmlspecialchars($room['name']); ?> (Trống)
+                                                </option>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <?php foreach($data['rooms'] as $room): ?>
+                                        <option value="<?php echo $room['id']; ?>" 
+                                            data-capacity="<?php echo $room['capacity']; ?>"
+                                            data-type="<?php echo $room['room_type_name'] ?? $room['type_name'] ?? 'Không có thông tin'; ?>"
+                                            data-location="<?php echo $room['location']; ?>">
+                                            <?php echo htmlspecialchars($room['name']); ?>
+                                        </option>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
                                 </select>
@@ -117,6 +138,33 @@ require_once __DIR__ . '/../layouts/header.php';
                                 <div class="invalid-feedback">Vui lòng chọn thời gian kết thúc sau thời gian bắt đầu</div>
                             </div>
                         </div>
+
+                        <!-- Thông báo đang tìm phòng -->
+                        <?php if (!isset($data['room'])): ?>
+                        <div id="searchingRoomsSpinner" class="d-none mb-4">
+                            <div class="alert alert-info d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <span>Đang kiểm tra phòng trống trong khoảng thời gian đã chọn...</span>
+                            </div>
+                        </div>
+
+                        <!-- Kết quả tìm phòng -->
+                        <?php if (isset($_POST['start_time']) && isset($_POST['end_time'])): ?>
+                            <?php if (empty($data['available_rooms'])): ?>
+                            <div class="alert alert-warning mb-4">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Không có phòng trống trong khoảng thời gian đã chọn. Vui lòng thử chọn thời gian khác.
+                            </div>
+                            <?php else: ?>
+                            <div class="alert alert-success mb-4">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Đã tìm thấy <?php echo count($data['available_rooms']); ?> phòng trống trong khoảng thời gian đã chọn.
+                            </div>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        <?php endif; ?>
 
                         <!-- Thông tin lớp học -->
                         <div class="mb-4">
@@ -158,218 +206,86 @@ require_once __DIR__ . '/../layouts/header.php';
                         </div>
 
                         <div class="form-check mb-4">
-                            <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
-                            <label class="form-check-label" for="terms">
-                                Tôi đồng ý với <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">quy định sử dụng phòng học</a>
+                            <input class="form-check-input" type="checkbox" id="agree_terms" name="agree_terms" required>
+                            <label class="form-check-label" for="agree_terms">
+                                Tôi đồng ý với <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">điều khoản sử dụng</a> và cam kết sử dụng phòng học đúng mục đích
                             </label>
                             <div class="invalid-feedback">
-                                Bạn phải đồng ý với quy định trước khi đặt phòng
+                                Bạn phải đồng ý với điều khoản sử dụng
                             </div>
                         </div>
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-calendar-check me-2"></i>Gửi yêu cầu đặt phòng
-                            </button>
-                            <a href="/pdu_pms_project/public/student/search_rooms" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Quay lại tìm kiếm
-                            </a>
-                        </div>
+                        <button type="submit" class="btn btn-primary" id="submitBookingBtn">
+                            <i class="fas fa-calendar-check me-2"></i>Gửi yêu cầu đặt phòng
+                        </button>
+                        <a href="/pdu_pms_project/public/student/search_rooms" class="btn btn-outline-secondary ms-2">
+                            <i class="fas fa-arrow-left me-2"></i>Quay lại
+                        </a>
                     </form>
                 </div>
             </div>
         </div>
 
         <div class="col-lg-4">
-            <!-- Lịch sử dụng phòng -->
-            <?php if (isset($data['room']) && isset($data['room_schedule'])): ?>
             <div class="card shadow mb-4">
                 <div class="card-header bg-white py-3">
-                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Lịch sử dụng phòng</h5>
-                </div>
-                <div class="card-body p-0">
-                    <?php if (empty($data['room_schedule'])): ?>
-                        <div class="p-4 text-center">
-                            <i class="far fa-calendar-check fa-3x text-muted mb-3"></i>
-                            <p>Không có lịch sử dụng nào được đặt trong thời gian sắp tới</p>
-                        </div>
-                    <?php else: ?>
-                        <div class="list-group list-group-flush">
-                            <?php foreach ($data['room_schedule'] as $schedule): ?>
-                                <div class="list-group-item px-3 py-3 d-flex">
-                                    <div class="me-3 text-center" style="min-width: 50px;">
-                                        <div class="bg-light rounded px-2 py-1">
-                                            <div class="small"><?php echo date('d/m', strtotime($schedule['start_time'])); ?></div>
-                                        </div>
-                                        <div class="small mt-1"><?php echo date('H:i', strtotime($schedule['start_time'])); ?></div>
-                                    </div>
-                                    <div>
-                                        <p class="mb-0 fw-bold"><?php echo htmlspecialchars($schedule['class_code']); ?></p>
-                                        <p class="mb-0 small text-muted">
-                                            <i class="far fa-clock me-1"></i>
-                                            <?php echo date('H:i', strtotime($schedule['start_time'])); ?> - 
-                                            <?php echo date('H:i', strtotime($schedule['end_time'])); ?>
-                                        </p>
-                                        <p class="mb-0 small text-muted">
-                                            <i class="far fa-user me-1"></i>
-                                            <?php 
-                                            if (!empty($schedule['teacher_name'])):
-                                                echo 'GV: ' . htmlspecialchars($schedule['teacher_name']);
-                                            elseif (!empty($schedule['student_name'])):
-                                                echo 'SV: ' . htmlspecialchars($schedule['student_name']);
-                                            else:
-                                                echo 'Không có thông tin';
-                                            endif;
-                                            ?>
-                                        </p>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <!-- Hướng dẫn đặt phòng -->
-            <div class="card shadow mb-4">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Hướng dẫn đặt phòng</h5>
+                    <h5 class="mb-0">Thông tin bổ sung</h5>
                 </div>
                 <div class="card-body">
-                    <div class="list-group list-group-flush">
-                        <div class="list-group-item px-0 border-0 d-flex">
-                            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center me-3" style="width: 24px; height: 24px;">
-                                <span class="text-white fw-bold small">1</span>
-                            </div>
-                            <div>Chọn phòng học phù hợp với nhu cầu sử dụng</div>
-                        </div>
-                        <div class="list-group-item px-0 border-0 d-flex">
-                            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center me-3" style="width: 24px; height: 24px;">
-                                <span class="text-white fw-bold small">2</span>
-                            </div>
-                            <div>Nhập đầy đủ thông tin mã lớp và mục đích sử dụng</div>
-                        </div>
-                        <div class="list-group-item px-0 border-0 d-flex">
-                            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center me-3" style="width: 24px; height: 24px;">
-                                <span class="text-white fw-bold small">3</span>
-                            </div>
-                            <div>Chọn thời gian bắt đầu và kết thúc phù hợp</div>
-                        </div>
-                        <div class="list-group-item px-0 border-0 d-flex">
-                            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center me-3" style="width: 24px; height: 24px;">
-                                <span class="text-white fw-bold small">4</span>
-                            </div>
-                            <div>Đọc và đồng ý với quy định sử dụng phòng học</div>
-                        </div>
-                        <div class="list-group-item px-0 border-0 d-flex">
-                            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center me-3" style="width: 24px; height: 24px;">
-                                <span class="text-white fw-bold small">5</span>
-                            </div>
-                            <div>Gửi yêu cầu và chờ phê duyệt từ quản trị viên</div>
-                        </div>
+                    <div class="mb-4">
+                        <h6 class="mb-2"><i class="fas fa-info-circle me-2 text-primary"></i>Lưu ý quan trọng</h6>
+                        <ul class="text-muted small mb-0">
+                            <li>Yêu cầu đặt phòng của sinh viên sẽ cần được kiểm duyệt trước khi được chấp nhận.</li>
+                            <li>Thời gian đặt phòng phải kết thúc trước 21:00.</li>
+                            <li>Vui lòng đặt trước ít nhất 24 giờ để đảm bảo thời gian xét duyệt.</li>
+                            <li>Chỉ được phép đặt phòng cho các hoạt động học tập.</li>
+                        </ul>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Giới hạn đặt phòng -->
-            <div class="card shadow">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Lưu ý quan trọng</h5>
-                </div>
-                <div class="card-body">
-                    <ul class="list-unstyled mb-0">
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Chỉ được đặt phòng tối đa 3 giờ mỗi lần
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Đặt phòng trước ít nhất 24 giờ
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Hủy đặt phòng trước ít nhất 2 giờ
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Mỗi sinh viên chỉ được đặt tối đa 3 phòng mỗi tuần
-                        </li>
-                        <li>
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Sử dụng đúng mục đích và số người đã đăng ký
-                        </li>
-                    </ul>
+                    
+                    <hr>
+                    
+                    <div class="mb-0">
+                        <h6 class="mb-2"><i class="fas fa-clock me-2 text-primary"></i>Thời gian phản hồi</h6>
+                        <p class="text-muted small mb-0">Thông thường các yêu cầu đặt phòng sẽ được xử lý trong vòng 24 giờ làm việc (không tính thứ 7, chủ nhật và ngày lễ).</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Quy định sử dụng phòng -->
+<!-- Terms Modal -->
 <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="termsModalLabel">Quy định sử dụng phòng học</h5>
+                <h5 class="modal-title" id="termsModalLabel">Điều khoản sử dụng phòng học</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-4">
-                    <h6 class="fw-bold">1. Quy định chung</h6>
-                    <ul>
-                        <li>Chỉ sử dụng phòng học sau khi được phê duyệt đặt phòng</li>
-                        <li>Chỉ sử dụng phòng đúng thời gian đã đăng ký</li>
-                        <li>Đảm bảo sử dụng phòng đúng mục đích và số lượng người đã đăng ký</li>
-                        <li>Không được tự ý chuyển nhượng phòng đã đặt cho người khác</li>
-                    </ul>
-                </div>
+                <h6>1. Quy định chung</h6>
+                <p>Người đặt phòng phải là sinh viên hoặc giảng viên của trường, có trách nhiệm tuân thủ các quy định của nhà trường về sử dụng cơ sở vật chất.</p>
                 
-                <div class="mb-4">
-                    <h6 class="fw-bold">2. Bảo quản tài sản</h6>
-                    <ul>
-                        <li>Không tự ý di chuyển bàn ghế, thiết bị trong phòng học</li>
-                        <li>Không làm hư hỏng, vẽ, viết lên tường, bàn ghế và các thiết bị trong phòng</li>
-                        <li>Báo cáo ngay khi phát hiện hư hỏng hoặc mất mát tài sản</li>
-                        <li>Chịu trách nhiệm bồi thường nếu làm hư hỏng, mất mát tài sản</li>
-                    </ul>
-                </div>
+                <h6>2. Thời gian sử dụng</h6>
+                <p>Thời gian sử dụng phòng học phải nằm trong khung giờ từ 7:00 đến 21:00 hàng ngày. Sinh viên chỉ được đặt phòng tối đa 3 giờ mỗi lần.</p>
                 
-                <div class="mb-4">
-                    <h6 class="fw-bold">3. Vệ sinh phòng học</h6>
-                    <ul>
-                        <li>Không mang đồ ăn, thức uống vào phòng học (trừ nước đóng chai)</li>
-                        <li>Giữ gìn vệ sinh, không xả rác trong phòng học</li>
-                        <li>Dọn dẹp sạch sẽ trước khi rời khỏi phòng</li>
-                    </ul>
-                </div>
+                <h6>3. Trách nhiệm người sử dụng</h6>
+                <ul>
+                    <li>Giữ gìn vệ sinh phòng học, không viết, vẽ lên bàn ghế, tường, bảng.</li>
+                    <li>Sử dụng thiết bị đúng cách, tiết kiệm điện nước.</li>
+                    <li>Không được tự ý di chuyển bàn ghế, thiết bị ra khỏi phòng.</li>
+                    <li>Không được hút thuốc, ăn uống trong phòng học (trừ nước uống).</li>
+                    <li>Giữ trật tự, không làm ồn ảnh hưởng đến các lớp học khác.</li>
+                </ul>
                 
-                <div class="mb-4">
-                    <h6 class="fw-bold">4. An toàn và an ninh</h6>
-                    <ul>
-                        <li>Tắt điện, thiết bị khi rời khỏi phòng</li>
-                        <li>Đóng cửa sổ, cửa ra vào khi rời khỏi phòng</li>
-                        <li>Không mang theo vật dễ cháy nổ, nguy hiểm vào phòng học</li>
-                        <li>Tuân thủ nội quy phòng học và hướng dẫn của cán bộ quản lý</li>
-                    </ul>
-                </div>
+                <h6>4. Quy định hủy đặt phòng</h6>
+                <p>Việc hủy đặt phòng phải được thực hiện trước thời gian sử dụng ít nhất 2 giờ. Nếu không sử dụng phòng đã đặt mà không hủy sẽ bị ghi nhận và có thể bị hạn chế quyền đặt phòng trong tương lai.</p>
                 
-                <div class="mb-4">
-                    <h6 class="fw-bold">5. Hủy đặt phòng</h6>
-                    <ul>
-                        <li>Hủy đặt phòng ít nhất 2 giờ trước thời gian bắt đầu sử dụng</li>
-                        <li>Thông báo cho quản trị viên nếu không thể sử dụng phòng như đã đăng ký</li>
-                        <li>Nếu không hủy đặt phòng mà không sử dụng 3 lần, tài khoản sẽ bị khóa quyền đặt phòng</li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <p class="fw-bold text-danger">Vi phạm quy định có thể dẫn đến việc bị hạn chế hoặc mất quyền đặt phòng trong tương lai.</p>
-                </div>
+                <h6>5. Xử lý vi phạm</h6>
+                <p>Những trường hợp vi phạm quy định sử dụng phòng học sẽ bị xử lý theo quy định của nhà trường, từ nhắc nhở, cảnh cáo đến hạn chế quyền đặt phòng học.</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                <button type="button" class="btn btn-primary" id="agreeTerms" data-bs-dismiss="modal">Tôi đồng ý</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Đã hiểu</button>
             </div>
         </div>
     </div>
@@ -377,17 +293,21 @@ require_once __DIR__ . '/../layouts/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Xử lý khi chọn phòng
+    // Xử lý hiển thị thông tin chi tiết phòng khi chọn
     const roomSelect = document.getElementById('room_id');
+    const roomDetails = document.getElementById('roomDetails');
+    const roomLocation = document.getElementById('roomLocation');
+    const roomCapacity = document.getElementById('roomCapacity');
+    const roomType = document.getElementById('roomType');
+    
     if (roomSelect) {
         roomSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const roomDetails = document.getElementById('roomDetails');
+            const selectedOption = roomSelect.options[roomSelect.selectedIndex];
             
-            if (this.value) {
-                document.getElementById('roomLocation').textContent = selectedOption.dataset.location;
-                document.getElementById('roomCapacity').textContent = selectedOption.dataset.capacity;
-                document.getElementById('roomType').textContent = selectedOption.dataset.type;
+            if (selectedOption.value) {
+                roomLocation.textContent = selectedOption.dataset.location;
+                roomCapacity.textContent = selectedOption.dataset.capacity;
+                roomType.textContent = selectedOption.dataset.type;
                 roomDetails.classList.remove('d-none');
             } else {
                 roomDetails.classList.add('d-none');
@@ -395,132 +315,92 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Xử lý khi chọn mục đích sử dụng
+    // Xử lý mục đích sử dụng khác
     const purposeSelect = document.getElementById('purpose');
     const otherPurposeContainer = document.getElementById('otherPurposeContainer');
     const otherPurposeInput = document.getElementById('other_purpose');
     
-    purposeSelect.addEventListener('change', function() {
-        if (this.value === 'khác') {
-            otherPurposeContainer.classList.remove('d-none');
-            otherPurposeInput.setAttribute('required', 'required');
-        } else {
-            otherPurposeContainer.classList.add('d-none');
-            otherPurposeInput.removeAttribute('required');
-        }
-    });
-    
-    // Kiểm tra thời gian
-    const startTimeInput = document.getElementById('start_time');
-    const endTimeInput = document.getElementById('end_time');
-    
-    startTimeInput.addEventListener('change', function() {
-        const startTime = new Date(this.value);
-        const now = new Date();
-        
-        // Đặt giá trị tối thiểu cho thời gian kết thúc
-        if (startTime > now) {
-            // Thêm 30 phút vào thời gian bắt đầu cho thời gian kết thúc tối thiểu
-            const minEndTime = new Date(startTime.getTime() + 30 * 60000);
-            endTimeInput.min = minEndTime.toISOString().slice(0, 16);
-            
-            // Nếu thời gian kết thúc hiện tại nhỏ hơn thời gian bắt đầu, cập nhật nó
-            if (endTimeInput.value && new Date(endTimeInput.value) <= startTime) {
-                const newEndTime = new Date(startTime.getTime() + 60 * 60000); // 1 giờ sau thời gian bắt đầu
-                endTimeInput.value = newEndTime.toISOString().slice(0, 16);
+    if (purposeSelect && otherPurposeContainer) {
+        purposeSelect.addEventListener('change', function() {
+            if (purposeSelect.value === 'khác') {
+                otherPurposeContainer.classList.remove('d-none');
+                otherPurposeInput.setAttribute('required', 'required');
+            } else {
+                otherPurposeContainer.classList.add('d-none');
+                otherPurposeInput.removeAttribute('required');
             }
-        }
-    });
+        });
+    }
     
-    endTimeInput.addEventListener('change', function() {
-        const startTime = new Date(startTimeInput.value);
-        const endTime = new Date(this.value);
-        
-        // Kiểm tra nếu thời gian kết thúc trước thời gian bắt đầu
-        if (endTime <= startTime) {
-            this.setCustomValidity('Thời gian kết thúc phải sau thời gian bắt đầu');
-        } else {
-            this.setCustomValidity('');
-            
-            // Kiểm tra nếu thời gian đặt phòng vượt quá 3 giờ
-            const hoursDiff = (endTime - startTime) / (1000 * 60 * 60);
-            if (hoursDiff > 3) {
-                alert('Thời gian đặt phòng không được vượt quá 3 giờ. Vui lòng điều chỉnh lại thời gian.');
-                // Đặt thời gian kết thúc là 3 giờ sau thời gian bắt đầu
-                const newEndTime = new Date(startTime.getTime() + 3 * 60 * 60 * 1000);
-                this.value = newEndTime.toISOString().slice(0, 16);
-            }
-        }
-    });
-    
-    // Kiểm tra số người tham gia
+    // Kiểm tra số người và cảnh báo vượt quá sức chứa
     const participantsInput = document.getElementById('participants');
     const capacityWarning = document.getElementById('capacity-warning');
     
-    participantsInput.addEventListener('change', function() {
-        let maxCapacity;
-        
-        if (roomSelect) {
-            // Nếu đang ở trang chọn phòng
+    if (participantsInput && roomSelect) {
+        participantsInput.addEventListener('input', function() {
             const selectedOption = roomSelect.options[roomSelect.selectedIndex];
-            if (selectedOption && selectedOption.dataset.capacity) {
-                maxCapacity = parseInt(selectedOption.dataset.capacity);
+            
+            if (selectedOption.value) {
+                const roomCapacity = parseInt(selectedOption.dataset.capacity);
+                const participants = parseInt(participantsInput.value);
+                
+                if (participants > roomCapacity) {
+                    capacityWarning.innerHTML = `<span class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Số người vượt quá sức chứa của phòng (${roomCapacity} người)</span>`;
+                } else {
+                    capacityWarning.innerHTML = '';
+                }
             }
-        } else if (document.querySelector('input[name="room_id"]')) {
-            // Nếu đã có phòng được chọn từ trang trước
-            <?php if (isset($data['room']) && isset($data['room']['capacity'])): ?>
-            maxCapacity = <?php echo intval($data['room']['capacity']); ?>;
-            <?php endif; ?>
-        }
-        
-        if (maxCapacity && parseInt(this.value) > maxCapacity) {
-            capacityWarning.textContent = `Cảnh báo: Số người vượt quá sức chứa tối đa (${maxCapacity} người) của phòng.`;
-            capacityWarning.classList.add('text-danger');
-        } else if (maxCapacity && parseInt(this.value) > maxCapacity * 0.8) {
-            capacityWarning.textContent = `Lưu ý: Số người gần đạt sức chứa tối đa (${maxCapacity} người) của phòng.`;
-            capacityWarning.classList.add('text-warning');
-            capacityWarning.classList.remove('text-danger');
-        } else {
-            capacityWarning.textContent = '';
-            capacityWarning.classList.remove('text-warning', 'text-danger');
-        }
-    });
+        });
+    }
     
-    // Xử lý khi đồng ý điều khoản từ modal
-    document.getElementById('agreeTerms').addEventListener('click', function() {
-        document.getElementById('terms').checked = true;
-    });
+    // Kiểm tra thời gian đặt phòng
+    const startTimeInput = document.getElementById('start_time');
+    const endTimeInput = document.getElementById('end_time');
+    const searchingRoomsSpinner = document.getElementById('searchingRoomsSpinner');
     
-    // Kiểm tra form trước khi submit
-    document.getElementById('bookingForm').addEventListener('submit', function(event) {
-        const startTime = new Date(startTimeInput.value);
-        const endTime = new Date(endTimeInput.value);
-        const now = new Date();
-        
-        // Kiểm tra nếu thời gian bắt đầu quá sớm (ít nhất 24 giờ)
-        const minBookingTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        if (startTime < minBookingTime) {
-            alert('Yêu cầu đặt phòng phải được thực hiện trước ít nhất 24 giờ. Vui lòng chọn thời gian khác.');
-            event.preventDefault();
-            return;
-        }
-        
-        // Kiểm tra thời lượng đặt phòng
-        const hoursDiff = (endTime - startTime) / (1000 * 60 * 60);
-        if (hoursDiff > 3) {
-            alert('Thời gian đặt phòng không được vượt quá 3 giờ. Vui lòng điều chỉnh lại thời gian.');
-            event.preventDefault();
-            return;
-        }
-        
-        // Kiểm tra nếu chưa đồng ý với điều khoản
-        if (!document.getElementById('terms').checked) {
-            alert('Vui lòng đồng ý với quy định sử dụng phòng học trước khi gửi yêu cầu.');
-            event.preventDefault();
-            return;
-        }
-    });
+    if (startTimeInput && endTimeInput && searchingRoomsSpinner) {
+        // Hiển thị trạng thái tìm kiếm khi thay đổi thời gian
+        [startTimeInput, endTimeInput].forEach(input => {
+            input.addEventListener('change', function() {
+                if (startTimeInput.value && endTimeInput.value) {
+                    const startTime = new Date(startTimeInput.value);
+                    const endTime = new Date(endTimeInput.value);
+                    
+                    if (endTime <= startTime) {
+                        endTimeInput.setCustomValidity('Thời gian kết thúc phải sau thời gian bắt đầu');
+                    } else {
+                        endTimeInput.setCustomValidity('');
+                        // Chỉ hiển thị spinner khi cả hai trường thời gian hợp lệ
+                        if (!document.getElementById('room_id').value) {
+                            searchingRoomsSpinner.classList.remove('d-none');
+                            document.getElementById('bookingForm').submit();
+                        }
+                    }
+                }
+            });
+        });
+    }
+    
+    // Form validation
+    const form = document.getElementById('bookingForm');
+    
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+        }, false);
+    }
 });
 </script>
 
-<?php require_once __DIR__ . '/../layouts/footer.php'; ?>
+<?php
+// Lấy nội dung đã được output buffering
+$content = ob_get_clean();
+
+// Bao gồm layout
+include __DIR__ . '/../layouts/student_layout.php';
+?>

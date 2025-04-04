@@ -1,224 +1,663 @@
-<?php include __DIR__ . '/../layouts/header.php'; ?>
-<?php include __DIR__ . '/../layouts/sidebar.php'; ?>
-<?php require_once __DIR__ . '/../../Helpers/BreadcrumbHelper.php'; ?>
+<?php 
+// Đảm bảo chỉ cho teacher
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
+    header('Location: /pdu_pms_project/public/login');
+    exit;
+}
 
-<div class="p-6 bg-gray-50">
-    <!-- Breadcrumb -->
-    <div class="mb-6 flex items-center bg-white p-4 rounded-lg shadow-sm">
-        <?php echo BreadcrumbHelper::render(); ?>
-    </div>
+include __DIR__ . '/../layouts/teacher_layout.php'; 
 
-    <!-- Thông báo -->
-    <?php if (isset($_GET['message'])): ?>
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
-            <p><?php echo htmlspecialchars($_GET['message']); ?></p>
-        </div>
-    <?php elseif (isset($data['error'])): ?>
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-            <p><?php echo htmlspecialchars($data['error']); ?></p>
-        </div>
-    <?php endif; ?>
-
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Đặt phòng</h2>
-        <form method="POST" action="/pdu_pms_project/public/teacher/book_room" class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label for="class_code" class="block text-sm font-medium text-gray-700 mb-1">Mã lớp</label>
-                    <input type="text" name="class_code" id="class_code" value="<?php echo htmlspecialchars($_POST['class_code'] ?? ''); ?>" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
-                </div>
-
-                <div>
-                    <label for="start_time" class="block text-sm font-medium text-gray-700 mb-1">Thời gian bắt đầu</label>
-                    <input type="datetime-local" name="start_time" id="start_time" value="<?php echo htmlspecialchars($_POST['start_time'] ?? ''); ?>" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
-                </div>
-
-                <div>
-                    <label for="end_time" class="block text-sm font-medium text-gray-700 mb-1">Thời gian kết thúc</label>
-                    <input type="datetime-local" name="end_time" id="end_time" value="<?php echo htmlspecialchars($_POST['end_time'] ?? ''); ?>" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
-                </div>
-            </div>
-
-            <!-- Phần chọn phòng trực quan -->
-            <div class="mt-8 mb-4">
-                <h3 class="text-lg font-medium text-gray-700 mb-4">Chọn phòng học</h3>
-
-                <!-- Giải thích màu sắc -->
-                <div class="flex items-center space-x-6 mb-4 text-sm">
-                    <div class="flex items-center">
-                        <div class="w-4 h-4 bg-green-100 border border-green-300 rounded mr-2"></div>
-                        <span>Phòng trống</span>
-                    </div>
-                    <div class="flex items-center">
-                        <div class="w-4 h-4 bg-red-100 border border-red-300 rounded mr-2"></div>
-                        <span>Phòng đã đặt</span>
-                    </div>
-                </div>
-
-                <!-- Grid hiển thị các phòng -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    <?php
-                    $start_time = $_POST['start_time'] ?? null;
-                    $end_time = $_POST['end_time'] ?? null;
-
-                    foreach ($data['rooms'] as $room):
-                        $isRoomAvailable = true;
-                        if ($start_time && $end_time) {
-                            $isRoomAvailable = in_array($room['id'], $data['available_rooms']);
-                        }
-
-                        $roomClass = $isRoomAvailable ? 'bg-green-100 border-green-300 hover:bg-green-200 cursor-pointer' : 'bg-red-100 border-red-300 opacity-50 cursor-not-allowed';
-                    ?>
-                        <label class="relative">
-                            <input type="radio" name="room_id" value="<?php echo htmlspecialchars($room['id']); ?>"
-                                <?php echo (!$isRoomAvailable) ? 'disabled' : ''; ?>
-                                <?php echo (isset($_POST['room_id']) && $_POST['room_id'] == $room['id']) ? 'checked' : ''; ?>
-                                class="hidden">
-                            <div class="room-card border rounded-md p-3 text-center <?php echo $roomClass; ?> <?php echo (isset($_POST['room_id']) && $_POST['room_id'] == $room['id']) ? 'room-selected' : ''; ?>">
-                                <div class="font-medium"><?php echo htmlspecialchars($room['name']); ?></div>
-                                <div class="text-sm text-gray-600">Sức chứa: <?php echo htmlspecialchars($room['capacity']); ?></div>
-                                <div class="mt-1 inline-block px-2 py-1 text-xs rounded status-badge <?php echo (isset($_POST['room_id']) && $_POST['room_id'] == $room['id']) ? 'bg-indigo-200 text-indigo-800' : ($isRoomAvailable ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'); ?>">
-                                    <?php echo (isset($_POST['room_id']) && $_POST['room_id'] == $room['id']) ? 'Đã chọn' : ($isRoomAvailable ? 'Trống' : 'Đã đặt'); ?>
-                                </div>
-                            </div>
-                        </label>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-
-            <!-- Nút Submit -->
-            <div class="mt-8 flex justify-end">
-                <a href="/pdu_pms_project/public/teacher" class="mr-3 bg-gray-200 py-2 px-4 rounded-md text-gray-700 hover:bg-gray-300 transition duration-300">Hủy bỏ</a>
-                <button type="submit" class="bg-indigo-600 py-2 px-4 rounded-md text-white hover:bg-indigo-700 transition duration-300">Đặt phòng</button>
-            </div>
-        </form>
-    </div>
-</div>
+// Lấy room_id từ query parameter nếu có
+$preselected_room_id = $_GET['room_id'] ?? null;
+$preselected_start_time = $_GET['start_time'] ?? '';
+$preselected_end_time = $_GET['end_time'] ?? '';
+?>
 
 <style>
-    .room-selected {
-        box-shadow: 0 0 0 3px #4F46E5 !important;
-        transform: scale(1.05);
-        z-index: 10;
-        position: relative;
+    /* Custom styling for room booking page */
+    .booking-header {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+        color: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
     }
-
-    .room-card:not(.disabled):hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    
+    .time-selector {
+        background-color: rgba(78, 115, 223, 0.05);
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        border-left: 4px solid #4e73df;
     }
-
-    .room-card:not(.disabled):active {
-        transform: scale(0.98);
-    }
-
+    
     .room-card {
-        transition: all 0.2s ease-in-out;
+        transition: all 0.3s ease;
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.1);
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border-radius: 0.5rem;
+    }
+    
+    .room-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .room-card.selected {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.25);
+    }
+    
+    .room-card .card-header {
+        border-top-left-radius: 0.5rem;
+        border-top-right-radius: 0.5rem;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .room-card .card-footer {
+        border-bottom-left-radius: 0.5rem;
+        border-bottom-right-radius: 0.5rem;
+    }
+    
+    .equipment-badge {
+        transition: all 0.2s ease;
+    }
+    
+    .equipment-badge:hover {
+        transform: scale(1.05);
+    }
+    
+    .room-capacity {
+        color: #5a5c69;
+        font-weight: 600;
+    }
+    
+    .room-location {
+        color: #e74a3b;
+        font-weight: 600;
+    }
+    
+    .btn-check-availability {
+        background: linear-gradient(45deg, #4e73df 0%, #36b9cc 100%);
+        border: none;
+        color: white;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-check-availability:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    .btn-book-room {
+        background: linear-gradient(45deg, #1cc88a 0%, #36b9cc 100%);
+        border: none;
+        font-weight: 600;
+    }
+    
+    .btn-book-room:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    .room-feature {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .room-feature i {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(78, 115, 223, 0.1);
+        color: #4e73df;
+        margin-right: 0.75rem;
     }
 </style>
 
+<div class="container-fluid mt-4">
+    <!-- Page Title -->
+    <div class="booking-header">
+        <div class="d-sm-flex align-items-center justify-content-between">
+            <div>
+                <h1 class="h3 mb-0"><i class="fas fa-calendar-plus me-2"></i>Đặt phòng</h1>
+                <p class="mb-0 opacity-75">Chọn thời gian và xem các phòng còn trống để đặt</p>
+            </div>
+            <div class="d-none d-md-flex align-items-center mt-3 mt-md-0">
+                <div class="d-flex align-items-center me-4">
+                    <div class="rounded-circle bg-success d-inline-block me-2" style="width: 10px; height: 10px;"></div>
+                    <span class="small">Phòng trống</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-danger d-inline-block me-2" style="width: 10px; height: 10px;"></div>
+                    <span class="small">Phòng đã đặt</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Form Card -->
+    <div class="card shadow mb-4 rounded border-0">
+        <div class="card-header py-3 bg-white">
+            <h6 class="m-0 font-weight-bold text-primary">Thông tin đặt phòng</h6>
+        </div>
+        <div class="card-body">
+            <?php if (isset($data['error'])): ?>
+                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                    <i class="fas fa-exclamation-circle me-2 fa-lg"></i>
+                    <div><?= $data['error'] ?></div>
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($data['success'])): ?>
+                <div class="alert alert-success d-flex align-items-center" role="alert">
+                    <i class="fas fa-check-circle me-2 fa-lg"></i>
+                    <div><?= $data['success'] ?></div>
+                </div>
+            <?php endif; ?>
+
+            <form action="" method="POST" id="bookingForm">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="class_code" class="form-label">Mã lớp học</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-graduation-cap text-primary"></i></span>
+                            <input type="text" class="form-control border-start-0" id="class_code" name="class_code" placeholder="Nhập mã lớp học..." required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="booking_date" class="form-label">Ngày đặt</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-calendar-alt text-primary"></i></span>
+                            <input type="date" class="form-control border-start-0" id="booking_date" name="booking_date" min="<?= date('Y-m-d') ?>" required>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-4">
+                        <div class="time-selector">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="start_hour" class="form-label">Thời gian bắt đầu</label>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-light"><i class="fas fa-clock text-primary"></i></span>
+                                                <select class="form-select" id="start_hour" name="start_hour" required>
+                                                    <?php for ($i = 7; $i <= 21; $i++): ?>
+                                                        <option value="<?= sprintf('%02d', $i) ?>"><?= sprintf('%02d', $i) ?></option>
+                                                    <?php endfor; ?>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <select class="form-select" id="start_minute" name="start_minute" required>
+                                                <option value="00">00</option>
+                                                <option value="30">30</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="end_hour" class="form-label">Thời gian kết thúc</label>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-light"><i class="fas fa-clock text-primary"></i></span>
+                                                <select class="form-select" id="end_hour" name="end_hour" required>
+                                                    <?php for ($i = 7; $i <= 21; $i++): ?>
+                                                        <option value="<?= sprintf('%02d', $i) ?>"><?= sprintf('%02d', $i) ?></option>
+                                                    <?php endfor; ?>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <select class="form-select" id="end_minute" name="end_minute" required>
+                                                <option value="00">00</option>
+                                                <option value="30">30</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-4">
+                        <div class="d-flex justify-content-between">
+                            <button type="button" id="checkAvailability" class="btn btn-check-availability py-2 px-4">
+                                <i class="fas fa-search me-2"></i>Kiểm tra phòng trống
+                            </button>
+                            <input type="hidden" id="selected_room_id" name="room_id" value="<?= $preselected_room_id ?>">
+                            <button type="submit" id="bookRoom" class="btn btn-book-room py-2 px-4 text-white" <?= empty($preselected_room_id) ? 'disabled' : '' ?>>
+                                <i class="fas fa-calendar-check me-2"></i>Đặt phòng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Available Rooms Card -->
+    <div class="card shadow mb-4 rounded border-0" id="availableRoomsCard" style="display: <?= empty($data['available_rooms']) ? 'none' : 'block' ?>;">
+        <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Phòng trống trong khung giờ đã chọn</h6>
+            <?php if (!empty($data['available_rooms'])): ?>
+                <span class="badge bg-primary rounded-pill px-3 py-2"><?= count($data['available_rooms']) ?> phòng</span>
+            <?php endif; ?>
+        </div>
+        <div class="card-body">
+            <div id="availableRoomsContainer">
+                <?php if (!empty($data['available_rooms'])): ?>
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                        <?php foreach ($data['available_rooms'] as $index => $room): ?>
+                            <div class="col animate-fade-in" style="animation-delay: <?= $index * 0.1 ?>s">
+                                <div class="card h-100 room-card">
+                                    <div class="card-header bg-light py-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0 fw-bold"><?= htmlspecialchars($room['name']) ?></h6>
+                                            <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">Trống</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <div class="room-feature">
+                                                <i class="fas fa-chalkboard"></i>
+                                                <div>
+                                                    <div class="small text-muted">Loại phòng</div>
+                                                    <div class="fw-medium"><?= htmlspecialchars($room['room_type_name']) ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="room-feature">
+                                                <i class="fas fa-users"></i>
+                                                <div>
+                                                    <div class="small text-muted">Sức chứa</div>
+                                                    <div class="room-capacity"><?= intval($room['capacity']) ?> người</div>
+                                                </div>
+                                            </div>
+                                            <div class="room-feature">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                <div>
+                                                    <div class="small text-muted">Vị trí</div>
+                                                    <div class="room-location"><?= htmlspecialchars($room['location']) ?></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <?php if (!empty($room['equipment'])): ?>
+                                            <div class="mt-3">
+                                                <small class="text-muted d-block mb-2">Thiết bị:</small>
+                                                <div>
+                                                    <?php foreach (array_slice(explode(',', $room['equipment']), 0, 3) as $equipment): ?>
+                                                        <span class="badge bg-info-subtle text-info me-1 mb-1 equipment-badge px-2 py-1"><?= trim($equipment) ?></span>
+                                                    <?php endforeach; ?>
+                                                    <?php if (count(explode(',', $room['equipment'])) > 3): ?>
+                                                        <span class="badge bg-secondary">...</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="card-footer bg-white border-top py-3">
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-outline-secondary flex-grow-1 view-room-detail" data-room-id="<?= $room['id'] ?>">
+                                                <i class="fas fa-info-circle me-1"></i>Chi tiết
+                                            </button>
+                                            <button type="button" class="btn btn-primary flex-grow-1 select-room" data-room-id="<?= $room['id'] ?>">
+                                                <i class="fas fa-check me-1"></i>Chọn
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="text-center py-5" id="noRoomsMessage">
+                        <i class="fas fa-calendar-times fa-4x text-muted mb-3 opacity-50"></i>
+                        <h4>Không có phòng trống</h4>
+                        <p class="text-muted col-md-6 mx-auto">Không có phòng nào trống trong khung giờ bạn chọn. Vui lòng thử chọn thời gian khác.</p>
+                        <button type="button" class="btn btn-outline-primary mt-2 px-4" id="changeTimeBtn">
+                            <i class="fas fa-clock me-2"></i>Thay đổi thời gian
+                        </button>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Form Handling -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('input[name="room_id"]').forEach(function(input) {
-            const label = input.closest('label');
-            const card = label.querySelector('.room-card');
-
-            if (input.checked) {
-                card.classList.add('room-selected');
-                const statusBadge = card.querySelector('.status-badge');
-                if (statusBadge) {
-                    statusBadge.textContent = 'Đã chọn';
-                    statusBadge.classList.remove('bg-green-200', 'text-green-800', 'bg-red-200', 'text-red-800');
-                    statusBadge.classList.add('bg-indigo-200', 'text-indigo-800');
-                }
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default values
+    const today = new Date();
+    document.getElementById('booking_date').value = today.toISOString().split('T')[0];
+    
+    // Set default start and end time (next closest hour or half-hour)
+    const currentHour = today.getHours();
+    const currentMinute = today.getMinutes();
+    
+    // Default to next 30-minute slot
+    let defaultStartHour = currentHour;
+    let defaultStartMinute = "30";
+    
+    // If past 30 minutes, go to next hour
+    if (currentMinute >= 30) {
+        defaultStartHour = currentHour + 1;
+        defaultStartMinute = "00";
+    }
+    
+    // Default end time is 1.5 hours after start time
+    let defaultEndHour = defaultStartHour + 1;
+    let defaultEndMinute = defaultStartMinute === "00" ? "30" : "00";
+    
+    // Handle day overflow
+    if (defaultStartHour >= 21) {
+        defaultStartHour = 21;
+        defaultStartMinute = "00";
+        defaultEndHour = 21;
+        defaultEndMinute = "30";
+    }
+    
+    if (defaultEndHour > 21) {
+        defaultEndHour = 21;
+        defaultEndMinute = "30";
+    }
+    
+    // Set the default values in the form
+    document.getElementById('start_hour').value = String(defaultStartHour).padStart(2, '0');
+    document.getElementById('start_minute').value = defaultStartMinute;
+    document.getElementById('end_hour').value = String(defaultEndHour).padStart(2, '0');
+    document.getElementById('end_minute').value = defaultEndMinute;
+    
+    // Pre-fill form if values are passed in URL
+    <?php if (!empty($preselected_start_time) && !empty($preselected_end_time)): ?>
+    try {
+        const startDate = new Date('<?= $preselected_start_time ?>');
+        const endDate = new Date('<?= $preselected_end_time ?>');
+        
+        document.getElementById('booking_date').value = startDate.toISOString().split('T')[0];
+        document.getElementById('start_hour').value = String(startDate.getHours()).padStart(2, '0');
+        document.getElementById('start_minute').value = String(startDate.getMinutes()).padStart(2, '0');
+        document.getElementById('end_hour').value = String(endDate.getHours()).padStart(2, '0');
+        document.getElementById('end_minute').value = String(endDate.getMinutes()).padStart(2, '0');
+    } catch (e) {
+        console.error('Error parsing dates from URL parameters:', e);
+    }
+    <?php endif; ?>
+    
+    // Check room availability button
+    document.getElementById('checkAvailability').addEventListener('click', function() {
+        // Validate time inputs
+        const startHour = parseInt(document.getElementById('start_hour').value);
+        const startMinute = document.getElementById('start_minute').value;
+        const endHour = parseInt(document.getElementById('end_hour').value);
+        const endMinute = document.getElementById('end_minute').value;
+        const bookingDate = document.getElementById('booking_date').value;
+        
+        // Create Date objects for comparison
+        const startTime = new Date(`${bookingDate}T${String(startHour).padStart(2, '0')}:${startMinute}:00`);
+        const endTime = new Date(`${bookingDate}T${String(endHour).padStart(2, '0')}:${endMinute}:00`);
+        
+        // Validate end time is after start time
+        if (endTime <= startTime) {
+            alert('Thời gian kết thúc phải sau thời gian bắt đầu!');
+            return;
+        }
+        
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('start_time', `${bookingDate} ${String(startHour).padStart(2, '0')}:${startMinute}:00`);
+        formData.append('end_time', `${bookingDate} ${String(endHour).padStart(2, '0')}:${endMinute}:00`);
+        
+        // Submit using fetch API - Use the specific getAvailableRooms endpoint
+        fetch('/pdu_pms_project/public/teacher/get-available-rooms', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
-
-            if (!input.disabled) {
-                label.addEventListener('click', function() {
-                    document.querySelectorAll('.room-card').forEach(function(otherCard) {
-                        otherCard.classList.remove('room-selected');
-                        const otherStatusBadge = otherCard.querySelector('.status-badge');
-                        if (otherStatusBadge && otherStatusBadge.textContent === 'Đã chọn') {
-                            const otherInput = otherCard.closest('label').querySelector('input');
-                            if (otherInput && otherInput.value != input.value) {
-                                otherStatusBadge.textContent = otherCard.classList.contains('bg-red-100') ? 'Đã đặt' : 'Trống';
-                                otherStatusBadge.classList.remove('bg-indigo-200', 'text-indigo-800');
-                                otherStatusBadge.classList.add(otherCard.classList.contains('bg-red-100') ? 'bg-red-200' : 'bg-green-200', otherCard.classList.contains('bg-red-100') ? 'text-red-800' : 'text-green-800');
-                            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Received data:', data); // Debug output
+            const availableRoomsCard = document.getElementById('availableRoomsCard');
+            const availableRoomsContainer = document.getElementById('availableRoomsContainer');
+            
+            availableRoomsCard.style.display = 'block';
+            
+            if (data.error) {
+                // Display error message
+                availableRoomsContainer.innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i>${data.error}
+                    </div>
+                    <div class="text-center py-5">
+                        <button type="button" class="btn btn-outline-primary mt-2" id="changeTimeBtn">
+                            <i class="fas fa-clock me-2"></i>Thay đổi thời gian
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('changeTimeBtn').addEventListener('click', function() {
+                    document.getElementById('booking_date').focus();
+                });
+                return;
+            }
+            
+            if (data.available_rooms && data.available_rooms.length > 0) {
+                // Generate card layout with available rooms
+                let tableHTML = `
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                `;
+                
+                data.available_rooms.forEach((room, index) => {
+                    let equipmentHTML = '';
+                    if (room.equipment) {
+                        const equipmentList = room.equipment.split(',');
+                        const displayEquipment = equipmentList.slice(0, 3).map(item => 
+                            `<span class="badge bg-info-subtle text-info me-1 mb-1 equipment-badge px-2 py-1">${item.trim()}</span>`
+                        ).join('');
+                        
+                        if (equipmentList.length > 3) {
+                            equipmentHTML = displayEquipment + ' <span class="badge bg-secondary">...</span>';
+                        } else {
+                            equipmentHTML = displayEquipment;
                         }
-                    });
-
-                    card.classList.add('room-selected');
-                    input.checked = true;
-
-                    const statusBadge = card.querySelector('.status-badge');
-                    if (statusBadge) {
-                        statusBadge.textContent = 'Đã chọn';
-                        statusBadge.classList.remove('bg-green-200', 'text-green-800', 'bg-red-200', 'text-red-800');
-                        statusBadge.classList.add('bg-indigo-200', 'text-indigo-800');
                     }
-
-                    card.animate([{
-                        transform: 'scale(1.05)'
-                    }, {
-                        transform: 'scale(1)'
-                    }, {
-                        transform: 'scale(1.05)'
-                    }], {
-                        duration: 300,
-                        easing: 'ease-in-out'
+                    
+                    tableHTML += `
+                        <div class="col animate-fade-in" style="animation-delay: ${index * 0.1}s">
+                            <div class="card h-100 room-card" data-room-id="${room.id}">
+                                <div class="card-header bg-light py-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0 fw-bold">${room.name}</h6>
+                                        <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">Trống</span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <div class="room-feature">
+                                            <i class="fas fa-chalkboard"></i>
+                                            <div>
+                                                <div class="small text-muted">Loại phòng</div>
+                                                <div class="fw-medium">${room.room_type_name}</div>
+                                            </div>
+                                        </div>
+                                        <div class="room-feature">
+                                            <i class="fas fa-users"></i>
+                                            <div>
+                                                <div class="small text-muted">Sức chứa</div>
+                                                <div class="room-capacity">${room.capacity} người</div>
+                                            </div>
+                                        </div>
+                                        <div class="room-feature">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                            <div>
+                                                <div class="small text-muted">Vị trí</div>
+                                                <div class="room-location">${room.location}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    ${room.equipment ? `
+                                        <div class="mt-3">
+                                            <small class="text-muted d-block mb-2">Thiết bị:</small>
+                                            <div>
+                                                ${equipmentHTML}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="card-footer bg-white border-top py-3">
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-secondary flex-grow-1 view-room-detail" data-room-id="${room.id}">
+                                            <i class="fas fa-info-circle me-1"></i>Chi tiết
+                                        </button>
+                                        <button type="button" class="btn btn-primary flex-grow-1 select-room" data-room-id="${room.id}">
+                                            <i class="fas fa-check me-1"></i>Chọn
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                tableHTML += `</div>`;
+                
+                availableRoomsContainer.innerHTML = tableHTML;
+                
+                // Add event listeners for the newly created buttons
+                document.querySelectorAll('.select-room').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const roomId = this.getAttribute('data-room-id');
+                        document.getElementById('selected_room_id').value = roomId;
+                        document.getElementById('bookRoom').disabled = false;
+                        
+                        // Highlight selected room
+                        document.querySelectorAll('.room-card').forEach(card => {
+                            card.classList.remove('selected');
+                        });
+                        this.closest('.room-card').classList.add('selected');
                     });
                 });
-            }
-        });
-
-        const startTimeInput = document.getElementById('start_time');
-        const endTimeInput = document.getElementById('end_time');
-        const classCodeInput = document.getElementById('class_code');
-
-        const updateRoomAvailability = function() {
-            const startTime = startTimeInput.value;
-            const endTime = endTimeInput.value;
-            const classCode = classCodeInput.value;
-
-            // Chỉ gọi fetch nếu cả start_time và end_time đều có giá trị
-            if (startTime && endTime) {
-                // Kiểm tra xem start_time có nhỏ hơn end_time không
-                const startDate = new Date(startTime);
-                const endDate = new Date(endTime);
-                if (startDate >= endDate) {
-                    alert('Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc.');
-                    return;
-                }
-
-                fetch('/pdu_pms_project/public/teacher/book_room', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `start_time=${encodeURIComponent(startTime)}&end_time=${encodeURIComponent(endTime)}&class_code=${encodeURIComponent(classCode)}`
-                    })
-                    .then(response => response.text())
-                    .then(() => {
-                        location.reload();
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Đã có lỗi xảy ra khi cập nhật danh sách phòng.');
+                
+                document.querySelectorAll('.view-room-detail').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const roomId = this.getAttribute('data-room-id');
+                        window.location.href = `/pdu_pms_project/public/teacher/room_detail?id=${roomId}`;
                     });
+                });
+                
             } else {
-                // Thông báo nếu người dùng chưa chọn đủ cả hai trường
-                if (startTime && !endTime) {
-                    alert('Vui lòng chọn thời gian kết thúc để cập nhật danh sách phòng.');
-                } else if (!startTime && endTime) {
-                    alert('Vui lòng chọn thời gian bắt đầu để cập nhật danh sách phòng.');
-                }
+                // No available rooms
+                availableRoomsContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5>Không có phòng trống</h5>
+                        <p class="text-muted">Không có phòng nào trống trong khung giờ bạn chọn</p>
+                        <button type="button" class="btn btn-outline-primary mt-2" id="changeTimeBtn">
+                            <i class="fas fa-clock me-2"></i>Thay đổi thời gian
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('changeTimeBtn').addEventListener('click', function() {
+                    document.getElementById('booking_date').focus();
+                });
             }
-        };
-
-        startTimeInput.addEventListener('change', updateRoomAvailability);
-        endTimeInput.addEventListener('change', updateRoomAvailability);
+        })
+        .catch(error => {
+            console.error('Error checking room availability:', error);
+            alert('Có lỗi xảy ra khi kiểm tra phòng trống. Vui lòng thử lại sau.');
+        });
     });
+    
+    // Form submission
+    document.getElementById('bookingForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validate inputs
+        const classCode = document.getElementById('class_code').value.trim();
+        const startHour = document.getElementById('start_hour').value;
+        const startMinute = document.getElementById('start_minute').value;
+        const endHour = document.getElementById('end_hour').value;
+        const endMinute = document.getElementById('end_minute').value;
+        const bookingDate = document.getElementById('booking_date').value;
+        const roomId = document.getElementById('selected_room_id').value;
+        
+        if (!classCode) {
+            alert('Vui lòng nhập mã lớp học!');
+            return;
+        }
+        
+        if (!roomId) {
+            alert('Vui lòng chọn phòng!');
+            return;
+        }
+        
+        // Create Date objects for comparison
+        const startTime = new Date(`${bookingDate}T${startHour}:${startMinute}:00`);
+        const endTime = new Date(`${bookingDate}T${endHour}:${endMinute}:00`);
+        
+        // Validate end time is after start time
+        if (endTime <= startTime) {
+            alert('Thời gian kết thúc phải sau thời gian bắt đầu!');
+            return;
+        }
+        
+        // Prepare form data for booking
+        const formData = new FormData();
+        formData.append('class_code', classCode);
+        formData.append('room_id', roomId);
+        formData.append('start_time', `${bookingDate} ${startHour}:${startMinute}:00`);
+        formData.append('end_time', `${bookingDate} ${endHour}:${endMinute}:00`);
+        
+        // Submit booking
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                alert(data.success);
+                // Redirect to bookings page
+                window.location.href = '/pdu_pms_project/public/teacher';
+            } else if (data.error) {
+                alert(data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error booking room:', error);
+            alert('Có lỗi xảy ra khi đặt phòng. Vui lòng thử lại sau.');
+        });
+    });
+    
+    // Change time button in no rooms message
+    document.getElementById('changeTimeBtn')?.addEventListener('click', function() {
+        document.getElementById('booking_date').focus();
+    });
+});
 </script>
-
-<?php include __DIR__ . '/../layouts/footer.php'; ?>

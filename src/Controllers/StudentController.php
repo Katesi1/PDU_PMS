@@ -4,26 +4,103 @@ namespace Controllers;
 use Models\BookingModel;
 use Models\RoomModel;
 use Models\UserModel;
+use Models\ScheduleModel;
+use DateTime;
 
 class StudentController {
     private $bookingModel;
     private $roomModel;
     private $userModel;
+    private $scheduleModel;
 
     public function __construct() {
         $this->bookingModel = new BookingModel();
         $this->roomModel = new RoomModel();
         $this->userModel = new UserModel();
+        $this->scheduleModel = new ScheduleModel();
+    }
+
+    private function render($view, $data = []) {
+        // Kiểm tra tệp view tồn tại
+        $viewFile = __DIR__ . '/../Views/' . $view . '.php';
+        if (file_exists($viewFile)) {
+            extract($data);
+            include $viewFile;
+        } else {
+            die("View {$view} không tồn tại");
+        }
     }
 
     public function index() {
+        // Kiểm tra session
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
             header('Location: /pdu_pms_project/public/login');
             exit;
         }
-        $user = $this->userModel->getUserById($_SESSION['user_id']);
-        $schedule = $this->bookingModel->getBookingsByClassCode($user['class_code']);
-        return ['schedule' => $schedule];
+
+        // Lấy dữ liệu student
+        $studentId = $_SESSION['user_id'];
+        $user = $this->userModel->getUserById($studentId);
+        
+        // Lấy dữ liệu đặt phòng của học sinh
+        $bookings = $this->bookingModel->getBookingsByStudent($studentId);
+        
+        // Thống kê đặt phòng
+        $totalBookings = count($bookings);
+        $approvedBookings = 0;
+        $pendingBookings = 0;
+        $rejectedBookings = 0;
+        $upcomingBookings = [];
+        
+        $now = new DateTime();
+        
+        foreach ($bookings as $booking) {
+            // Đếm theo trạng thái
+            switch(strtolower($booking['status'])) {
+                case 'được duyệt':
+                case 'đã duyệt':
+                    $approvedBookings++;
+                    break;
+                case 'chờ duyệt':
+                    $pendingBookings++;
+                    break;
+                case 'từ chối':
+                    $rejectedBookings++;
+                    break;
+            }
+            
+            // Tìm các đặt phòng sắp tới (trạng thái đã duyệt và thời gian bắt đầu > hiện tại)
+            $startTime = new DateTime($booking['start_time']);
+            if (($booking['status'] == 'được duyệt' || $booking['status'] == 'đã duyệt') && $startTime > $now) {
+                $upcomingBookings[] = $booking;
+            }
+        }
+        
+        // Sắp xếp lịch đặt phòng sắp tới theo thời gian bắt đầu
+        usort($upcomingBookings, function($a, $b) {
+            return strtotime($a['start_time']) - strtotime($b['start_time']);
+        });
+        
+        // Lấy dữ liệu lịch học của lớp
+        $classCode = $user['class_code'];
+        $schedule = [];
+        if ($classCode) {
+            $schedule = $this->scheduleModel->getScheduleByClassCode($classCode);
+        }
+
+        $data = [
+            'user' => $user,
+            'bookings' => $bookings,
+            'total_bookings' => $totalBookings,
+            'approved_bookings' => $approvedBookings,
+            'pending_bookings' => $pendingBookings,
+            'rejected_bookings' => $rejectedBookings,
+            'upcoming_bookings' => $upcomingBookings,
+            'schedule' => $schedule
+        ];
+
+        // Render trang dashboard sinh viên
+        $this->render('student/index', $data);
     }
 
     // Phương thức tìm kiếm phòng cho sinh viên
@@ -191,13 +268,22 @@ class StudentController {
         $start_time = $_POST['start_time'] ?? null;
         $end_time = $_POST['end_time'] ?? null;
         $available_rooms = [];
+
         if ($start_time && $end_time) {
-            $start_time = date('Y-m-d H:i:s', strtotime($start_time));
-            $end_time = date('Y-m-d H:i:s', strtotime($end_time));
-            $rooms = $this->roomModel->getAllRooms();
-            foreach ($rooms as $room) {
-                if (!$this->bookingModel->checkBookingConflict($room['id'], $start_time, $end_time)) {
-                    $available_rooms[] = $room['id'];
+            // Kiểm tra định dạng thời gian
+            $start_timestamp = strtotime($start_time);
+            $end_timestamp = strtotime($end_time);
+            
+            if ($start_timestamp && $end_timestamp && $start_timestamp < $end_timestamp) {
+                $formatted_start = date('Y-m-d H:i:s', $start_timestamp);
+                $formatted_end = date('Y-m-d H:i:s', $end_timestamp);
+                
+                // Lọc danh sách phòng trống
+                $rooms = $this->roomModel->getAllRooms();
+                foreach ($rooms as $room) {
+                    if (!$this->bookingModel->checkBookingConflict($room['id'], $formatted_start, $formatted_end)) {
+                        $available_rooms[] = $room['id']; // Chỉ lưu ID phòng trống
+                    }
                 }
             }
         }

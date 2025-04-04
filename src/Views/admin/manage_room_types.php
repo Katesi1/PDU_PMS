@@ -5,6 +5,15 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
+// Trích xuất biến $roomTypes từ $data
+if (isset($data) && isset($data['roomTypes'])) {
+    $roomTypes = $data['roomTypes'];
+    error_log("View: Đã nhận được roomTypes với " . count($roomTypes) . " phần tử");
+} else {
+    $roomTypes = [];
+    error_log("View: Không nhận được roomTypes từ controller!");
+}
+
 include __DIR__ . '/../layouts/admin_layout.php'; ?>
 
 <div class="container-fluid mt-4">
@@ -133,10 +142,10 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if (!empty($roomTypes)): ?>
+                                <?php if (isset($roomTypes) && is_array($roomTypes) && count($roomTypes) > 0): ?>
                                     <?php foreach ($roomTypes as $roomType): ?>
                                         <tr>
-                                            <td><?= $roomType['id'] ?></td>
+                                            <td><?= htmlspecialchars($roomType['id']) ?></td>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <div class="room-type-icon me-2 <?= (isset($roomType['room_count']) && $roomType['room_count'] > 0) ? 'bg-info' : 'bg-warning' ?>">
@@ -157,15 +166,18 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
                                             </td>
                                             <td class="text-center">
                                                 <div class="btn-group">
-                                                    <a href="/pdu_pms_project/public/admin/edit_room_type/<?= $roomType['id'] ?>" class="btn btn-sm btn-warning btn-action" data-toggle="tooltip" title="Sửa loại phòng">
+                                                    <a href="/pdu_pms_project/public/admin/edit_room_type/<?= $roomType['id'] ?>" class="btn btn-sm btn-warning btn-action" title="Sửa loại phòng">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
                                                     <?php if (!isset($roomType['room_count']) || $roomType['room_count'] == 0): ?>
-                                                        <a href="javascript:void(0)" onclick="confirmDelete(<?= $roomType['id'] ?>, '<?= htmlspecialchars($roomType['name']) ?>')" class="btn btn-sm btn-danger btn-action" data-toggle="tooltip" title="Xóa loại phòng">
-                                                            <i class="fas fa-trash"></i>
-                                                        </a>
+                                                        <form action="/pdu_pms_project/public/admin/delete_room_type" method="get" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa loại phòng <?= htmlspecialchars($roomType['name']) ?>?');">
+                                                            <input type="hidden" name="id" value="<?= $roomType['id'] ?>">
+                                                            <button type="submit" class="btn btn-sm btn-danger btn-action" title="Xóa loại phòng">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </form>
                                                     <?php else: ?>
-                                                        <button class="btn btn-sm btn-danger btn-action disabled" data-toggle="tooltip" title="Không thể xóa loại phòng đang được sử dụng">
+                                                        <button class="btn btn-sm btn-danger btn-action disabled" title="Không thể xóa loại phòng đang được sử dụng">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     <?php endif; ?>
@@ -264,26 +276,6 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="deleteModalLabel"><i class="fas fa-trash me-2"></i>Xác nhận xóa</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Bạn có chắc chắn muốn xóa loại phòng <strong id="roomTypeName"></strong>?</p>
-                <p class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i> Hành động này không thể hoàn tác!</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <a href="#" id="deleteLink" class="btn btn-danger">Xóa loại phòng</a>
-            </div>
-        </div>
-    </div>
-</div>
-
 <style>
     /* Card styles */
     .card.border-left-primary {
@@ -368,21 +360,25 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
     
     /* Action Buttons */
     .btn-action {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
         padding: 0;
-        display: inline-flex;
+        display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 8px;
-        margin: 0 2px;
+        border-radius: 50%;
+        margin: 0 3px;
+        font-size: 14px;
         transition: all 0.2s ease;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     }
     
-    .btn-action:hover:not(.disabled) {
-        transform: translateY(-3px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .btn-action i {
+        line-height: 1;
     }
     
     /* Form Card */
@@ -546,6 +542,160 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
         position: relative;
         z-index: 1060 !important; /* Higher than modal and backdrop */
     }
+    
+    /* DataTables Customization */
+    .dataTables_length select {
+        min-width: 60px;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.35rem;
+        border: 1px solid #d1d3e2;
+    }
+    
+    .dataTables_filter input {
+        min-width: 250px;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.35rem;
+        border: 1px solid #d1d3e2;
+    }
+    
+    /* Loại bỏ label "Tìm kiếm:" */
+    .dataTables_filter label {
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Loại bỏ label "Hiển thị _MENU_ dữ liệu" */
+    .dataTables_length label {
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Card and table styles */
+    .table-card {
+        border-radius: 0.35rem;
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .table-card .card-header {
+        padding: 1rem 1.35rem;
+        border-bottom: 1px solid #e3e6f0;
+        background-color: #f8f9fc;
+    }
+    
+    .table thead th {
+        vertical-align: middle;
+        background-color: #f8f9fc;
+        border-bottom: 2px solid #e3e6f0;
+    }
+    
+    .table td {
+        vertical-align: middle;
+    }
+    
+    .table-bordered td, .table-bordered th {
+        border: 1px solid #e3e6f0;
+    }
+    
+    .room-type-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 18px;
+    }
+    
+    .bg-info {
+        background-color: #36b9cc!important;
+    }
+    
+    .bg-warning {
+        background-color: #f6c23e!important;
+    }
+    
+    .form-card, .info-card {
+        border-radius: 0.35rem;
+        overflow: hidden;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .form-card .card-header, .info-card .card-header {
+        padding: 1rem 1.35rem;
+        border-bottom: none;
+    }
+    
+    .form-card .card-body, .info-card .card-body {
+        padding: 1.35rem;
+    }
+    
+    .info-box {
+        background-color: rgba(54, 185, 204, 0.1);
+        border-left: 4px solid #36b9cc;
+        padding: 1rem;
+        border-radius: 0.35rem;
+    }
+    
+    .note-box {
+        display: flex;
+        background-color: rgba(246, 194, 62, 0.1);
+        border-left: 4px solid #f6c23e;
+        padding: 1rem;
+        border-radius: 0.35rem;
+    }
+    
+    .note-icon {
+        width: 36px;
+        height: 36px;
+        background-color: #f6c23e;
+        color: #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        margin-right: 1rem;
+    }
+    
+    .note-list {
+        list-style: none;
+        padding-left: 0;
+    }
+    
+    .note-list li {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Pagination Styling */
+    .page-item.active .page-link {
+        background-color: #4e73df;
+        border-color: #4e73df;
+    }
+    
+    .page-link {
+        color: #4e73df;
+    }
+    
+    /* Button Styling */
+    .btn-submit {
+        padding: 0.5rem 1.5rem;
+        font-weight: 600;
+    }
+    
+    /* DataTables - ẩn label */
+    .dataTables_length label,
+    .dataTables_filter label {
+        font-size: 0;
+    }
+    
+    .dataTables_length select,
+    .dataTables_filter input {
+        font-size: 0.875rem;
+    }
 </style>
 
 <script>
@@ -556,15 +706,24 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
         $('body').css('padding-right', '');
         
         // Initialize DataTable
-        $('#roomTypesTable').DataTable({
+        var dataTable = $('#roomTypesTable').DataTable({
             language: {
-                url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/vi.json'
+                url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/vi.json',
+                search: "",
+                lengthMenu: "_MENU_"
             },
             pageLength: 10,
             order: [[0, 'asc']],
             responsive: true,
-            dom: '<"top"lf>rt<"bottom"ip>'
+            dom: '<"d-flex justify-content-between align-items-center mb-3"<"d-flex align-items-center"l><"d-flex align-items-center"f>>rt<"d-flex justify-content-between"ip>'
         });
+        
+        // Tùy chỉnh sau khi DataTable được khởi tạo
+        $('.dataTables_filter input').attr('placeholder', 'Nhập tìm kiếm...');
+        
+        // Thêm class Bootstrap vào các phần tử
+        $('.dataTables_length select').addClass('form-select form-select-sm');
+        $('.dataTables_filter input').addClass('form-control form-control-sm');
         
         // Initialize tooltips
         $(function () {
@@ -591,31 +750,5 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
         $('#name').on('input', function() {
             $(this).removeClass('is-invalid');
         });
-        
-        // Ensure modal cleanup when closed
-        $('#deleteModal').on('hidden.bs.modal', function () {
-            $('.modal-backdrop').remove();
-            $('body').removeClass('modal-open').css('overflow', '');
-            $('body').css('padding-right', '');
-        });
-    });
-    
-    // Delete confirmation
-    function confirmDelete(id, name) {
-        // Clean up any existing modals first
-        $('.modal-backdrop').remove();
-        $('body').removeClass('modal-open').css('overflow', '');
-        
-        $('#roomTypeName').text(name);
-        $('#deleteLink').attr('href', '/pdu_pms_project/public/admin/delete_room_type/' + id);
-        var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        deleteModal.show();
-    }
-    
-    // Additional fix for any click on the body that might encounter a modal backdrop
-    $(document).on('click', '.modal-backdrop', function() {
-        $(this).remove();
-        $('body').removeClass('modal-open').css('overflow', '');
-        $('body').css('padding-right', '');
     });
 </script> 

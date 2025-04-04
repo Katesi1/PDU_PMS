@@ -1,12 +1,19 @@
-<?php include __DIR__ . '/../layouts/header.php'; ?>
-<?php include __DIR__ . '/../layouts/teacher_navbar.php'; ?>
+<?php 
+// Đảm bảo chỉ cho teacher
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
+    header('Location: /pdu_pms_project/public/login');
+    exit;
+}
 
-<div class="room-detail-container">
+include __DIR__ . '/../layouts/teacher_layout.php'; 
+?>
+
+<div class="container-fluid mt-4">
     <!-- Page Title -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-sm-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="page-title"><?= htmlspecialchars($room['name']) ?></h1>
-            <p class="page-subtitle">Thông tin chi tiết và lịch sử dụng phòng</p>
+            <h1 class="h3 mb-0 text-gray-800"><?= htmlspecialchars($room['name']) ?></h1>
+            <p class="text-muted">Thông tin chi tiết và lịch sử dụng phòng</p>
         </div>
         <div>
             <a href="/pdu_pms_project/public/teacher/search_rooms" class="btn btn-outline-primary">
@@ -19,9 +26,9 @@
         <!-- Main Room Info -->
         <div class="col-xl-8">
             <!-- Room Details Card -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="m-0"><i class="fas fa-info-circle me-2"></i>Thông tin phòng</h5>
+            <div class="card shadow mb-4 rounded">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-info-circle me-2"></i>Thông tin phòng</h6>
                     <?php
                     $statusClass = 'success';
                     $statusText = 'Khả dụng';
@@ -91,21 +98,21 @@
             </div>
 
             <!-- Equipment Card -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="m-0"><i class="fas fa-desktop me-2"></i>Thiết bị trong phòng</h5>
+            <div class="card shadow mb-4 rounded">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-desktop me-2"></i>Thiết bị trong phòng</h6>
                     <span class="badge bg-primary rounded-pill"><?= count($room['equipment'] ?? []) ?> thiết bị</span>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body">
                     <?php if (isset($room['equipment']) && !empty($room['equipment'])): ?>
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
                                 <thead>
                                     <tr>
-                                        <th class="ps-3">Tên thiết bị</th>
+                                        <th>Tên thiết bị</th>
                                         <th>Mô tả</th>
                                         <th>Trạng thái</th>
-                                        <th class="text-end pe-3">Bảo trì gần nhất</th>
+                                        <th class="text-end">Bảo trì gần nhất</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -119,7 +126,7 @@
                                         }
                                         ?>
                                         <tr>
-                                            <td class="ps-3">
+                                            <td>
                                                 <div class="d-flex align-items-center">
                                                     <?php
                                                     $icon = 'desktop';
@@ -147,7 +154,7 @@
                                                     <?= htmlspecialchars($equipment['status']) ?>
                                                 </span>
                                             </td>
-                                            <td class="text-end pe-3">
+                                            <td class="text-end">
                                                 <?= $equipment['last_maintenance_date'] ? date('d/m/Y', strtotime($equipment['last_maintenance_date'])) : '<em class="text-muted">Chưa bảo trì</em>' ?>
                                             </td>
                                         </tr>
@@ -169,12 +176,12 @@
         <!-- Sidebar -->
         <div class="col-xl-4">
             <!-- Available Time Slots Card -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="m-0"><i class="fas fa-clock me-2"></i>Khung giờ trống</h5>
+            <div class="card shadow mb-4 rounded">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-clock me-2"></i>Khung giờ trống</h6>
                     <span class="badge bg-primary rounded-pill"><?= count($availableSlots) ?> khung giờ</span>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body">
                     <?php if (!empty($availableSlots)): ?>
                         <div class="list-group list-group-flush">
                             <?php foreach (array_slice($availableSlots, 0, 10) as $slot): ?>
@@ -199,8 +206,19 @@
                                                 </span>
                                             </div>
                                             <div class="small text-muted mt-1">
-                                                <i class="far fa-clock me-1"></i>
-                                                Thời lượng: <?= round((strtotime($slot['end']) - strtotime($slot['start'])) / 3600, 1) ?> giờ
+                                                <i class="fas fa-clock me-1"></i>
+                                                <?php
+                                                $start = new DateTime($slot['start']);
+                                                $end = new DateTime($slot['end']);
+                                                $duration = $start->diff($end);
+                                                $hours = $duration->h;
+                                                $minutes = $duration->i;
+                                                if ($duration->days > 0) {
+                                                    $hours += $duration->days * 24;
+                                                }
+                                                echo $hours > 0 ? $hours . ' giờ ' : '';
+                                                echo $minutes > 0 ? $minutes . ' phút' : '';
+                                                ?>
                                             </div>
                                         </div>
                                     </div>
@@ -208,58 +226,92 @@
                             <?php endforeach; ?>
                         </div>
                         <?php if (count($availableSlots) > 10): ?>
-                            <div class="text-center py-3 border-top">
-                                <a href="/pdu_pms_project/public/teacher/suggest_rooms?room_id=<?= $room['id'] ?>" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-calendar-alt me-1"></i>Xem thêm khung giờ trống
-                                </a>
+                            <div class="text-center pt-3">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="showMoreSlots">
+                                    <i class="fas fa-plus me-1"></i>Xem thêm khung giờ
+                                </button>
                             </div>
                         <?php endif; ?>
                     <?php else: ?>
                         <div class="text-center py-5">
-                            <i class="far fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
                             <h5>Không có khung giờ trống</h5>
-                            <p class="text-muted">Phòng này không có khung giờ trống trong 7 ngày tới</p>
+                            <p class="text-muted">Phòng này hiện không có khung giờ trống nào</p>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
             
-            <!-- Room Usage Guidelines Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="m-0"><i class="fas fa-info-circle me-2"></i>Hướng dẫn sử dụng</h5>
+            <!-- Booking History Card -->
+            <div class="card shadow mb-4 rounded">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-history me-2"></i>Lịch sử đặt phòng</h6>
                 </div>
                 <div class="card-body">
-                    <div class="list-group list-group-flush">
-                        <div class="list-group-item px-0 border-0 d-flex">
-                            <div class="me-3 rounded-circle bg-primary-subtle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                                <span class="fw-bold">1</span>
-                            </div>
-                            <div>Đặt phòng trước khi sử dụng</div>
+                    <?php if (!empty($bookingHistory)): ?>
+                        <div class="timeline">
+                            <?php foreach (array_slice($bookingHistory, 0, 5) as $booking): ?>
+                                <div class="timeline-item mb-3 pb-3 border-bottom">
+                                    <div class="d-flex">
+                                        <div class="me-3 text-center" style="min-width: 60px;">
+                                            <?php
+                                            $bookingDate = new DateTime($booking['start_time']);
+                                            $dayOfWeek = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+                                            ?>
+                                            <div class="bg-light rounded-3 py-1">
+                                                <div class="small"><?= $dayOfWeek[$bookingDate->format('w')] ?></div>
+                                                <div class="fw-bold"><?= $bookingDate->format('d/m') ?></div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="d-flex align-items-center mb-1">
+                                                <h6 class="mb-0 fw-semibold me-2"><?= date('H:i', strtotime($booking['start_time'])) ?> - <?= date('H:i', strtotime($booking['end_time'])) ?></h6>
+                                                <?php
+                                                $bookingStatusClass = 'secondary';
+                                                $bookingStatusText = 'Chưa xác định';
+                                                
+                                                if ($booking['status'] === 'được duyệt') {
+                                                    $bookingStatusClass = 'success';
+                                                    $bookingStatusText = 'Đã duyệt';
+                                                } elseif ($booking['status'] === 'chờ duyệt') {
+                                                    $bookingStatusClass = 'warning';
+                                                    $bookingStatusText = 'Chờ duyệt';
+                                                } elseif ($booking['status'] === 'từ chối') {
+                                                    $bookingStatusClass = 'danger';
+                                                    $bookingStatusText = 'Từ chối';
+                                                }
+                                                ?>
+                                                <span class="badge bg-<?= $bookingStatusClass ?> ms-auto"><?= $bookingStatusText ?></span>
+                                            </div>
+                                            <div class="text-muted small mb-1">
+                                                <i class="fas fa-chalkboard me-1"></i>
+                                                Mã lớp: <?= htmlspecialchars($booking['class_code']) ?>
+                                            </div>
+                                            <div class="text-muted small">
+                                                <i class="fas fa-user me-1"></i>
+                                                Người đặt: <?= htmlspecialchars($booking['teacher_name'] ?? 'Không xác định') ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
-                        <div class="list-group-item px-0 border-0 d-flex">
-                            <div class="me-3 rounded-circle bg-primary-subtle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                                <span class="fw-bold">2</span>
+                        <?php if (count($bookingHistory) > 5): ?>
+                            <div class="text-center pt-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="showMoreHistory">
+                                    <i class="fas fa-plus me-1"></i>Xem thêm lịch sử
+                                </button>
                             </div>
-                            <div>Kiểm tra thiết bị trước khi bắt đầu giảng dạy</div>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <div class="text-center py-5">
+                            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                            <h5>Chưa có lịch sử đặt phòng</h5>
+                            <p class="text-muted">Phòng này chưa được đặt trước đây</p>
                         </div>
-                        <div class="list-group-item px-0 border-0 d-flex">
-                            <div class="me-3 rounded-circle bg-primary-subtle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                                <span class="fw-bold">3</span>
-                            </div>
-                            <div>Báo cáo ngay khi phát hiện thiết bị hỏng hóc</div>
-                        </div>
-                        <div class="list-group-item px-0 border-0 d-flex">
-                            <div class="me-3 rounded-circle bg-primary-subtle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                                <span class="fw-bold">4</span>
-                            </div>
-                            <div>Tắt thiết bị và điều hòa khi rời khỏi phòng</div>
-                        </div>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
-</div>
-
-<?php include __DIR__ . '/../layouts/footer.php'; ?> 
+</div> 

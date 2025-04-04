@@ -1,14 +1,22 @@
 <?php
+// Đảm bảo chỉ cho student
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
+    header('Location: /pdu_pms_project/public/login');
+    exit;
+}
+
 $pageTitle = "Tìm Kiếm Phòng Học";
-require_once __DIR__ . '/../layouts/header.php';
+
+// Bắt đầu output buffering
+ob_start();
 ?>
 
-<div class="container-fluid py-4">
+<div class="container-fluid">
     <div class="row">
         <div class="col-12">
             <div class="card shadow mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Tìm Kiếm Phòng Học</h5>
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Tìm Kiếm Phòng Học</h6>
                 </div>
                 <div class="card-body">
                     <form action="/pdu_pms_project/public/student/search_rooms" method="post" id="searchForm">
@@ -70,8 +78,8 @@ require_once __DIR__ . '/../layouts/header.php';
     <div class="row">
         <div class="col-12">
             <div class="card shadow">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Kết quả tìm kiếm</h5>
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Kết quả tìm kiếm</h6>
                     <span class="badge bg-primary"><?php echo count($data['rooms']); ?> phòng học</span>
                 </div>
                 <div class="card-body">
@@ -126,11 +134,11 @@ require_once __DIR__ . '/../layouts/header.php';
                                         </div>
                                         <div class="card-footer bg-white">
                                             <div class="d-grid gap-2">
-                                                <a href="/pdu_pms_project/public/student/room_detail/<?php echo $room['id']; ?>" class="btn btn-outline-primary">
+                                                <a href="/pdu_pms_project/public/student/room_detail?id=<?php echo $room['id']; ?>" class="btn btn-outline-primary">
                                                     <i class="fas fa-info-circle"></i> Xem chi tiết
                                                 </a>
                                                 <?php if ($room['status'] === 'trống'): ?>
-                                                <a href="/pdu_pms_project/public/student/book_room/<?php echo $room['id']; ?>" class="btn btn-primary">
+                                                <a href="/pdu_pms_project/public/student/book_room?room_id=<?php echo $room['id']; ?>" class="btn btn-primary">
                                                     <i class="fas fa-calendar-plus"></i> Đặt phòng
                                                 </a>
                                                 <?php endif; ?>
@@ -170,4 +178,10 @@ require_once __DIR__ . '/../layouts/header.php';
     });
 </script>
 
-<?php require_once __DIR__ . '/../layouts/footer.php'; ?> 
+<?php
+// Lấy nội dung đã được output buffering
+$content = ob_get_clean();
+
+// Bao gồm layout
+include __DIR__ . '/../layouts/student_layout.php';
+?> 

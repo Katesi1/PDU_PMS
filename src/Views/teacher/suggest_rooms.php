@@ -1,12 +1,24 @@
-<?php include __DIR__ . '/../layouts/header.php'; ?>
-<?php include __DIR__ . '/../layouts/teacher_navbar.php'; ?>
+<?php 
+// Đảm bảo chỉ cho teacher
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
+    header('Location: /pdu_pms_project/public/login');
+    exit;
+}
 
-<div class="container mt-4">
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white d-flex justify-content-between">
-            <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Đề xuất phòng trống theo thời gian</h5>
-            <a href="/pdu_pms_project/public/teacher/search_rooms" class="btn btn-sm btn-light">
-                <i class="fas fa-arrow-left"></i> Quay lại tìm kiếm
+include __DIR__ . '/../layouts/teacher_layout.php'; 
+?>
+
+<div class="container-fluid mt-4">
+    <!-- Tiêu đề trang -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-calendar-check me-2"></i> Đề xuất phòng trống</h1>
+    </div>
+
+    <div class="card shadow mb-4 rounded">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Tìm phòng trống theo thời gian</h6>
+            <a href="/pdu_pms_project/public/teacher/search_rooms" class="btn btn-sm btn-primary">
+                <i class="fas fa-arrow-left me-1"></i> Quay lại tìm kiếm
             </a>
         </div>
         <div class="card-body">
@@ -14,22 +26,22 @@
                 <div class="row g-3">
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label for="start_time">Thời gian bắt đầu</label>
+                            <label for="start_time" class="form-label">Thời gian bắt đầu</label>
                             <input type="datetime-local" class="form-control" id="start_time" name="start_time" required
                                 value="<?= isset($searchParams['start_time']) ? date('Y-m-d\TH:i', strtotime($searchParams['start_time'])) : '' ?>">
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label for="end_time">Thời gian kết thúc</label>
+                            <label for="end_time" class="form-label">Thời gian kết thúc</label>
                             <input type="datetime-local" class="form-control" id="end_time" name="end_time" required
                                 value="<?= isset($searchParams['end_time']) ? date('Y-m-d\TH:i', strtotime($searchParams['end_time'])) : '' ?>">
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label for="room_type_id">Loại phòng</label>
-                            <select class="form-control" id="room_type_id" name="room_type_id">
+                            <label for="room_type_id" class="form-label">Loại phòng</label>
+                            <select class="form-select" id="room_type_id" name="room_type_id">
                                 <option value="">Tất cả loại phòng</option>
                                 <?php foreach ($roomTypes as $roomType): ?>
                                     <option value="<?= $roomType['id'] ?>" <?= (isset($searchParams['room_type_id']) && $searchParams['room_type_id'] == $roomType['id']) ? 'selected' : '' ?>>
@@ -41,17 +53,17 @@
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label for="min_capacity">Sức chứa tối thiểu</label>
+                            <label for="min_capacity" class="form-label">Sức chứa tối thiểu</label>
                             <input type="number" class="form-control" id="min_capacity" name="min_capacity" min="1"
                                 value="<?= isset($searchParams['min_capacity']) ? intval($searchParams['min_capacity']) : '' ?>">
                         </div>
                     </div>
                     <div class="col-md-12 mt-3">
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search"></i> Tìm phòng trống
+                            <i class="fas fa-search me-1"></i> Tìm phòng trống
                         </button>
                         <a href="/pdu_pms_project/public/teacher/suggest_rooms" class="btn btn-secondary">
-                            <i class="fas fa-redo"></i> Đặt lại
+                            <i class="fas fa-redo me-1"></i> Đặt lại
                         </a>
                     </div>
                 </div>
@@ -65,7 +77,7 @@
 
             <?php if (isset($searchParams['start_time']) && isset($searchParams['end_time'])): ?>
                 <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> Kết quả tìm kiếm cho thời gian từ 
+                    <i class="fas fa-info-circle me-1"></i> Kết quả tìm kiếm cho thời gian từ 
                     <strong><?= date('H:i d/m/Y', strtotime($searchParams['start_time'])) ?></strong> 
                     đến 
                     <strong><?= date('H:i d/m/Y', strtotime($searchParams['end_time'])) ?></strong>
@@ -94,11 +106,11 @@
                                 </div>
                                 <div class="card-footer">
                                     <div class="d-flex justify-content-between">
-                                        <a href="/pdu_pms_project/public/teacher/room_detail/<?= $room['id'] ?>" class="btn btn-sm btn-info">
-                                            <i class="fas fa-info-circle"></i> Chi tiết
+                                        <a href="/pdu_pms_project/public/teacher/room_detail?id=<?= $room['id'] ?>" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-info-circle me-1"></i> Chi tiết
                                         </a>
                                         <a href="/pdu_pms_project/public/teacher/book_room?room_id=<?= $room['id'] ?>&start_time=<?= urlencode($searchParams['start_time']) ?>&end_time=<?= urlencode($searchParams['end_time']) ?>" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-calendar-plus"></i> Đặt phòng
+                                            <i class="fas fa-calendar-plus me-1"></i> Đặt phòng
                                         </a>
                                     </div>
                                 </div>
@@ -108,7 +120,7 @@
                 <?php else: ?>
                     <div class="col-12">
                         <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle"></i> Không tìm thấy phòng trống nào phù hợp với tiêu chí tìm kiếm
+                            <i class="fas fa-exclamation-triangle me-1"></i> Không tìm thấy phòng trống nào phù hợp với tiêu chí tìm kiếm
                         </div>
                     </div>
                 <?php endif; ?>
@@ -137,6 +149,4 @@ document.addEventListener('DOMContentLoaded', function() {
     startTimeInput.addEventListener('change', validateTimeInputs);
     endTimeInput.addEventListener('change', validateTimeInputs);
 });
-</script>
-
-<?php include __DIR__ . '/../layouts/footer.php'; ?> 
+</script> 

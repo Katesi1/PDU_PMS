@@ -1,19 +1,26 @@
-<?php include __DIR__ . '/../layouts/header.php'; ?>
-<?php include __DIR__ . '/../layouts/teacher_navbar.php'; ?>
+<?php 
+// Đảm bảo chỉ cho teacher
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
+    header('Location: /pdu_pms_project/public/login');
+    exit;
+}
 
-<div class="search-rooms-container">
+include __DIR__ . '/../layouts/teacher_layout.php'; 
+?>
+
+<div class="container-fluid mt-4">
     <!-- Page Title -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <div>
-            <h1 class="page-title">Tìm kiếm phòng</h1>
-            <p class="page-subtitle">Tìm và đề xuất đặt phòng theo thời gian và nhu cầu sử dụng</p>
+            <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-search me-2"></i>Tìm kiếm phòng</h1>
+            <p class="text-muted">Tìm và đề xuất đặt phòng theo thời gian và nhu cầu sử dụng</p>
         </div>
     </div>
 
     <!-- Search Card -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="m-0"><i class="fas fa-search me-2"></i>Bộ lọc tìm kiếm</h5>
+    <div class="card shadow mb-4 rounded">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Bộ lọc tìm kiếm</h6>
         </div>
         <div class="card-body">
             <form action="" method="GET" id="searchForm">
@@ -112,25 +119,25 @@
     </div>
 
     <!-- Results Card -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="m-0"><i class="fas fa-th-list me-2"></i>Kết quả tìm kiếm</h5>
+    <div class="card shadow mb-4 rounded">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Kết quả tìm kiếm</h6>
             <?php if (!empty($rooms)): ?>
                 <span class="badge bg-primary rounded-pill"><?= count($rooms) ?> phòng</span>
             <?php endif; ?>
         </div>
-        <div class="card-body p-0">
+        <div class="card-body">
             <?php if (!empty($rooms)): ?>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
-                                <th class="ps-3">Tên phòng</th>
+                                <th>Tên phòng</th>
                                 <th>Loại</th>
                                 <th>Sức chứa</th>
                                 <th>Vị trí</th>
                                 <th>Trạng thái</th>
-                                <th class="text-end pe-3">Thao tác</th>
+                                <th class="text-end">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -148,7 +155,7 @@
                                 }
                                 ?>
                                 <tr>
-                                    <td class="ps-3 fw-semibold"><?= htmlspecialchars($room['name']) ?></td>
+                                    <td class="fw-bold"><?= htmlspecialchars($room['name']) ?></td>
                                     <td><?= htmlspecialchars($room['room_type_name']) ?></td>
                                     <td>
                                         <i class="fas fa-users text-muted me-1"></i>
@@ -163,7 +170,7 @@
                                             <?= $statusText ?>
                                         </span>
                                     </td>
-                                    <td class="text-end pe-3">
+                                    <td class="text-end">
                                         <a href="/pdu_pms_project/public/teacher/room_detail?id=<?= $room['id'] ?>" class="btn btn-sm btn-outline-secondary me-1">
                                             <i class="fas fa-info-circle me-1"></i>Chi tiết
                                         </a>
@@ -203,37 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
             timeFilters.style.display = 'block';
         } else {
             timeFilters.style.display = 'none';
-            // Reset time-related fields
-            document.getElementById('date').disabled = true;
-            document.getElementById('start_time').disabled = true;
-            document.getElementById('end_time').disabled = true;
-            document.querySelectorAll('input[name="equipment[]"]').forEach(item => {
-                item.disabled = true;
-            });
-        }
-    });
-    
-    // Ensure form submission includes time fields only when toggle is checked
-    document.getElementById('searchForm').addEventListener('submit', function(e) {
-        if (!toggleTimeFilter.checked) {
-            // Disable time-related fields so they won't be included in the query string
-            document.getElementById('date').disabled = true;
-            document.getElementById('start_time').disabled = true;
-            document.getElementById('end_time').disabled = true;
-            document.querySelectorAll('input[name="equipment[]"]').forEach(item => {
-                item.disabled = true;
-            });
-        } else {
-            // Enable fields for submission
-            document.getElementById('date').disabled = false;
-            document.getElementById('start_time').disabled = false;
-            document.getElementById('end_time').disabled = false;
-            document.querySelectorAll('input[name="equipment[]"]').forEach(item => {
-                item.disabled = false;
-            });
         }
     });
 });
-</script>
-
-<?php include __DIR__ . '/../layouts/footer.php'; ?> 
+</script> 

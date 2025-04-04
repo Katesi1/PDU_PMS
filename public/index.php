@@ -251,6 +251,12 @@ switch ($uri) {
         break;
     case 'admin/manage_room_types':
         $data = $adminController->manageRoomTypes();
+        // Debug
+        error_log("DEBUG: roomTypes có " . (isset($data['roomTypes']) ? count($data['roomTypes']) : 'không có') . " phần tử");
+        
+        // Tạo biến global để view có thể truy cập
+        extract($data);
+        
         require_once __DIR__ . '/../src/Views/admin/manage_room_types.php';
         break;
     case 'admin/add_room_type':
@@ -333,6 +339,15 @@ switch ($uri) {
     case 'teacher/suggest_rooms':
         $data = $teacherController->suggestAvailableRooms($_GET);
         require_once __DIR__ . '/../src/Views/teacher/suggest_rooms.php';
+        break;
+    case 'teacher/get-available-rooms':
+        $teacherController->getAvailableRooms();
+        break;
+    case 'teacher/get-teacher-bookings':
+        $teacherController->getTeacherBookings();
+        break;
+    case 'teacher/get-all-rooms':
+        $teacherController->getAllRooms();
         break;
     case 'student/search_rooms':
         $data = $studentController->searchRooms($_GET);

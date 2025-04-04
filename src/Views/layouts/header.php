@@ -4,12 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title><?php echo $title ?? 'PDU - PMS'; ?></title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <!-- Custom Styles -->
+    <link href="/pdu_pms_project/public/assets/css/styles.css" rel="stylesheet">
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -251,13 +254,6 @@
                                 <span class="fw-medium text-capitalize d-none d-md-inline"><?php echo $_SESSION['full_name']; ?></span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow user-menu">
-                                <!-- <li class="px-3 py-2 user-menu-header">
-                                    <div class="d-flex flex-column">
-                                        <span class="fw-bold mb-1"><?php echo $_SESSION['full_name']; ?></span>
-                                        <span class="text-muted small"><?php echo ucfirst($_SESSION['role']); ?></span>
-                                    </div>
-                                </li>
-                                <li><hr class="dropdown-divider m-0"></li> -->
                                 <li>
                                     <a class="dropdown-item py-2" href="/pdu_pms_project/public/profile">
                                         <i class="fas fa-user me-2 text-primary"></i>Hồ sơ
@@ -266,6 +262,20 @@
                                 <?php if ($_SESSION['role'] === 'admin'): ?>
                                 <li>
                                     <a class="dropdown-item py-2" href="/pdu_pms_project/public/admin">
+                                        <i class="fas fa-tachometer-alt me-2 text-success"></i>Bảng điều khiển
+                                    </a>
+                                </li>
+                                <?php endif; ?>
+                                <?php if ($_SESSION['role'] === 'teacher'): ?>
+                                <li>
+                                    <a class="dropdown-item py-2" href="/pdu_pms_project/public/teacher">
+                                        <i class="fas fa-tachometer-alt me-2 text-success"></i>Bảng điều khiển
+                                    </a>
+                                </li>
+                                <?php endif; ?>
+                                <?php if ($_SESSION['role'] === 'student'): ?>
+                                <li>
+                                    <a class="dropdown-item py-2" href="/pdu_pms_project/public/student">
                                         <i class="fas fa-tachometer-alt me-2 text-success"></i>Bảng điều khiển
                                     </a>
                                 </li>

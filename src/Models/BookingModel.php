@@ -142,6 +142,13 @@ class BookingModel
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    public function getBookingsByStudent($studentId)
+    {
+        $stmt = $this->db->prepare("SELECT b.*, r.name AS room_name FROM bookings b JOIN rooms r ON b.room_id = r.id WHERE b.student_id = ? ORDER BY b.start_time DESC");
+        $stmt->execute([$studentId]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     public function getBookingsByClassCode($classCode)
     {
         $stmt = $this->db->prepare("SELECT b.*, r.name AS room_name FROM bookings b JOIN rooms r ON b.room_id = r.id WHERE b.class_code = ? AND b.status = 'được duyệt' ORDER BY b.start_time ASC");
