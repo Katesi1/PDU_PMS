@@ -74,11 +74,11 @@ if (isset($_SESSION['error_message'])) unset($_SESSION['error_message']);
                                 <label for="room_type_id" class="form-label fw-bold">Loại phòng <span class="text-danger">*</span></label>
                                 <div class="input-group mb-3">
                                     <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
-                                    <select class="form-select preview-trigger" id="room_type_id" name="room_type_id" required>
-                                        <option value="" selected disabled>-- Chọn loại phòng --</option>
-                                        <?php if (isset($data['room_types']) && is_array($data['room_types'])): ?>
-                                            <?php foreach ($data['room_types'] as $room_type): ?>
-                                                <option value="<?= $room_type['id'] ?>" data-type-name="<?= htmlspecialchars($room_type['name']) ?>"><?= htmlspecialchars($room_type['name']) ?></option>
+                                    <select class="form-select preview-trigger" id="room_type_id" name="room_type_id">
+                                        <option value="">-- Chọn loại phòng --</option>
+                                        <?php if (isset($data['roomTypes']) && is_array($data['roomTypes'])): ?>
+                                            <?php foreach ($data['roomTypes'] as $roomType): ?>
+                                                <option value="<?= $roomType['id'] ?>" data-type-name="<?= htmlspecialchars($roomType['name']) ?>"><?= htmlspecialchars($roomType['name']) ?></option>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
                                     </select>

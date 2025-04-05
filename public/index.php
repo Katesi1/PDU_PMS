@@ -154,8 +154,19 @@ switch ($uri) {
         require_once __DIR__ . '/../src/Views/admin/add_room.php';
         break;
     case 'admin/edit_room':
-        $data = $adminController->editRoom(array_merge($_GET, $_POST));
-        require_once __DIR__ . '/../src/Views/admin/edit_room.php';
+        if (isset($_POST['id'])) {
+            // If the form was submitted with an ID, process the edit
+            $data = $adminController->editRoom($_POST);
+            if (isset($data['error'])) {
+                // If there was an error, redisplay the form
+                require_once __DIR__ . '/../src/Views/admin/edit_room.php';
+            }
+            // If successful, the controller will redirect
+        } else {
+            // If no ID in POST (direct access to /edit_room), redirect to manage rooms
+            header('Location: /pdu_pms_project/public/admin/manage_rooms');
+            exit;
+        }
         break;
     case 'admin/delete_room':
         $adminController->deleteRoom($_GET); // Không gán $data vì dùng redirect
@@ -378,6 +389,114 @@ switch ($uri) {
         require_once __DIR__ . '/../src/Views/admin/system_logs.php';
         break;
     default:
+        // Handle paths with IDs
+        if (preg_match('/^admin\/edit_room\/(\d+)$/', $uri, $matches)) {
+            $_GET['id'] = $matches[1];
+            $data = $adminController->editRoom(array_merge($_GET, $_POST));
+            require_once __DIR__ . '/../src/Views/admin/edit_room.php';
+            break;
+        } elseif (preg_match('/^admin\/delete_room\/(\d+)$/', $uri, $matches)) {
+            $_GET['id'] = $matches[1];
+            $adminController->deleteRoom($_GET);
+            break;
+        } elseif (preg_match('/^admin\/room_detail\/(\d+)$/', $uri, $matches)) {
+            $_GET['id'] = $matches[1];
+            $roomModel = new \Models\RoomModel();
+            $room = $roomModel->getRoomById($_GET['id']);
+            
+            // Get room type if the room has a room_type_id
+            $roomType = null;
+            if (!empty($room['room_type_id'])) {
+                $roomTypes = $roomModel->getRoomTypes();
+                foreach ($roomTypes as $type) {
+                    if ($type['id'] == $room['room_type_id']) {
+                        $roomType = $type;
+                        break;
+                    }
+                }
+            }
+            
+            // Get upcoming bookings for this room
+            $upcomingBookings = $roomModel->getUpcomingClassesForRoom($_GET['id']);
+            
+            // Get booking statistics
+            $bookingStats = [
+                'total' => count($upcomingBookings ?? []),
+                'usage_rate' => '65%' // Example placeholder value
+            ];
+            
+            // Sample usage data for the chart
+            $usageData = [4, 6, 2, 5, 3, 0, 1]; // Example data
+            
+            $data = [
+                'room' => $room,
+                'roomType' => $roomType,
+                'upcomingBookings' => $upcomingBookings,
+                'bookingStats' => $bookingStats,
+                'usageData' => $usageData
+            ];
+            
+            if (file_exists(__DIR__ . '/../src/Views/admin/room_detail.php')) {
+                require_once __DIR__ . '/../src/Views/admin/room_detail.php';
+            } else {
+                header('Location: /pdu_pms_project/public/admin/manage_rooms');
+                exit;
+            }
+            break;
+        } elseif (preg_match('/^admin\/edit_room_type\/(\d+)$/', $uri, $matches)) {
+            // Directly redirect to the edit form and let the form handle the room type data
+            $_GET['id'] = $matches[1];
+            $_POST['id'] = $matches[1]; // Also add to POST for consistency
+            
+            // Just redirect to the edit_room_type page
+            header('Location: /pdu_pms_project/public/admin/edit_room_type?id=' . $_GET['id']);
+            exit;
+            break;
+        } elseif (preg_match('/^admin\/delete_room_type\/(\d+)$/', $uri, $matches)) {
+            $_GET['id'] = $matches[1];
+            $adminController->deleteRoomType($_GET);
+            break;
+        } elseif (preg_match('/^admin\/delete_booking\/(\d+)$/', $uri, $matches)) {
+            $_GET['id'] = $matches[1];
+            $adminController->deleteBooking($_GET);
+            break;
+        } elseif (preg_match('/^admin\/view_booking\/(\d+)$/', $uri, $matches)) {
+            $_GET['id'] = $matches[1];
+            $data = [];
+            $bookingModel = new \Models\BookingModel();
+            $booking = $bookingModel->getBookingById($_GET['id']);
+            if ($booking) {
+                $data['booking'] = $booking;
+                require_once __DIR__ . '/../src/Views/admin/view_booking.php';
+            } else {
+                header('Location: /pdu_pms_project/public/admin/manage_bookings?error=Booking not found');
+                exit;
+            }
+            break;
+        } elseif (preg_match('/^admin\/approve_booking\/(\d+)$/', $uri, $matches)) {
+            $_GET['id'] = $matches[1];
+            $bookingModel = new \Models\BookingModel();
+            $success = $bookingModel->updateBookingStatus($_GET['id'], 'approved');
+            if ($success) {
+                header('Location: /pdu_pms_project/public/admin/manage_bookings?message=Booking approved successfully');
+            } else {
+                header('Location: /pdu_pms_project/public/admin/manage_bookings?error=Failed to approve booking');
+            }
+            exit;
+            break;
+        } elseif (preg_match('/^admin\/reject_booking\/(\d+)$/', $uri, $matches)) {
+            $_GET['id'] = $matches[1];
+            $bookingModel = new \Models\BookingModel();
+            $success = $bookingModel->updateBookingStatus($_GET['id'], 'rejected');
+            if ($success) {
+                header('Location: /pdu_pms_project/public/admin/manage_bookings?message=Booking rejected successfully');
+            } else {
+                header('Location: /pdu_pms_project/public/admin/manage_bookings?error=Failed to reject booking');
+            }
+            exit;
+            break;
+        }
+        
         http_response_code(404);
         echo '<h1>404 - Page Not Found</h1>';
         break;

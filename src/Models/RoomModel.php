@@ -68,16 +68,16 @@ class RoomModel
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    public function addRoom($name, $capacity, $location = null, $notes = null)
+    public function addRoom($name, $capacity, $room_type_id = null)
     {
-        $stmt = $this->db->prepare("INSERT INTO rooms (name, capacity, status, location, notes) VALUES (?, ?, 'trống', ?, ?)");
-        return $stmt->execute([$name, $capacity, $location, $notes]);
+        $stmt = $this->db->prepare("INSERT INTO rooms (name, capacity, status, room_type_id) VALUES (?, ?, 'trống', ?)");
+        return $stmt->execute([$name, $capacity, $room_type_id]);
     }
 
-    public function updateRoom($id, $name, $capacity, $status, $location = null, $notes = null)
+    public function updateRoom($id, $name, $capacity, $status, $room_type_id = null)
     {
-        $stmt = $this->db->prepare("UPDATE rooms SET name = ?, capacity = ?, status = ?, location = ?, notes = ? WHERE id = ?");
-        return $stmt->execute([$name, $capacity, $status, $location, $notes, $id]);
+        $stmt = $this->db->prepare("UPDATE rooms SET name = ?, capacity = ?, status = ?, room_type_id = ? WHERE id = ?");
+        return $stmt->execute([$name, $capacity, $status, $room_type_id, $id]);
     }
 
     public function deleteRoom($id)
@@ -177,6 +177,11 @@ class RoomModel
         if (!empty($params['status'])) {
             $sql .= " AND r.status = ?";
             $binds[] = $params['status'];
+        }
+        
+        if (!empty($params['room_type_id'])) {
+            $sql .= " AND r.room_type_id = ?";
+            $binds[] = $params['room_type_id'];
         }
         
         if (!empty($params['location'])) {

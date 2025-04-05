@@ -286,15 +286,6 @@ if (empty($current_page) || $current_page === 'admin') {
         <i class="fas fa-chevron-left"></i>
     </div>
     
-    <!-- Theme Switcher -->
-    <div class="theme-switcher">
-        <div class="theme-option blue-purple active" data-theme="theme-blue-purple" title="Xanh dương - Tím"></div>
-        <div class="theme-option green-teal" data-theme="theme-green-teal" title="Xanh lá - Xanh ngọc"></div>
-        <div class="theme-option orange-red" data-theme="theme-orange-red" title="Cam - Đỏ"></div>
-        <div class="theme-option indigo-purple" data-theme="theme-indigo-purple" title="Chàm - Tím"></div>
-        <div class="theme-option dark" data-theme="theme-dark" title="Tối"></div>
-    </div>
-
     <!-- Admin Menu -->
     <ul class="nav flex-column">
         <div class="sidebar-category"><span>Tổng quan</span></div>

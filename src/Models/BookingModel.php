@@ -220,4 +220,22 @@ class BookingModel
         $stmt = $this->db->prepare("DELETE FROM bookings WHERE id = ?");
         return $stmt->execute([$id]);
     }
+
+    /**
+     * Update the status of a booking
+     * 
+     * @param int $id Booking ID
+     * @param string $status New status (approved, rejected, pending)
+     * @return bool Success or failure
+     */
+    public function updateBookingStatus($id, $status)
+    {
+        $validStatuses = ['approved', 'rejected', 'pending'];
+        if (!in_array($status, $validStatuses)) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare("UPDATE bookings SET status = ? WHERE id = ?");
+        return $stmt->execute([$status, $id]);
+    }
 }

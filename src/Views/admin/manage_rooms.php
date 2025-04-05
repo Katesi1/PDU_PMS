@@ -133,25 +133,59 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
         <div class="card-body py-3">
             <form id="roomFilterForm" class="row g-3">
                 <div class="col-md-3">
-                    <label for="searchKeyword" class="form-label">Tìm kiếm</label>
-                    <input type="text" class="form-control" id="searchKeyword" placeholder="Nhập tên phòng, vị trí...">
+                    <label for="searchKeyword" class="form-label">Tìm kiếm theo tên phòng</label>
+                    <input type="text" class="form-control" id="searchKeyword" placeholder="Nhập tên phòng">
                 </div>
                 <div class="col-md-3">
                     <label for="roomTypeFilter" class="form-label">Loại phòng</label>
                     <select class="form-select" id="roomTypeFilter">
                         <option value="">Tất cả loại phòng</option>
-                        <option value="Phòng học">Phòng học</option>
-                        <option value="Phòng thực hành">Phòng thực hành</option>
-                        <option value="Phòng hội thảo">Phòng hội thảo</option>
+                        <?php 
+                        // Get unique room types from the available rooms data
+                        if (isset($data['rooms']) && is_array($data['rooms'])) {
+                            $roomTypes = [];
+                            foreach ($data['rooms'] as $room) {
+                                if (!empty($room['room_type_name']) && !in_array($room['room_type_name'], $roomTypes)) {
+                                    $roomTypes[] = $room['room_type_name'];
+                                }
+                            }
+                            sort($roomTypes);
+                            foreach ($roomTypes as $type) {
+                                echo '<option value="' . htmlspecialchars($type) . '">' . htmlspecialchars($type) . '</option>';
+                            }
+                        } else {
+                            // Fallback options if no rooms data is available
+                            echo '<option value="Phòng học">Phòng học</option>';
+                            echo '<option value="Phòng thực hành">Phòng thực hành</option>';
+                            echo '<option value="Phòng hội thảo">Phòng hội thảo</option>';
+                        }
+                        ?>
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label for="statusFilter" class="form-label">Trạng thái</label>
                     <select class="form-select" id="statusFilter">
                         <option value="">Tất cả trạng thái</option>
-                        <option value="trống">Trống</option>
-                        <option value="đang sử dụng">Đang sử dụng</option>
-                        <option value="bảo trì">Bảo trì</option>
+                        <?php 
+                        // Get unique room statuses from the available rooms data
+                        if (isset($data['rooms']) && is_array($data['rooms'])) {
+                            $roomStatuses = [];
+                            foreach ($data['rooms'] as $room) {
+                                if (!empty($room['status']) && !in_array($room['status'], $roomStatuses)) {
+                                    $roomStatuses[] = $room['status'];
+                                }
+                            }
+                            sort($roomStatuses);
+                            foreach ($roomStatuses as $status) {
+                                echo '<option value="' . htmlspecialchars($status) . '">' . htmlspecialchars($status) . '</option>';
+                            }
+                        } else {
+                            // Fallback options if no rooms data is available
+                            echo '<option value="trống">Trống</option>';
+                            echo '<option value="đang sử dụng">Đang sử dụng</option>';
+                            echo '<option value="bảo trì">Bảo trì</option>';
+                        }
+                        ?>
                     </select>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
@@ -306,7 +340,7 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
         
         // Filter functionality
         $('#searchKeyword').on('keyup', function() {
-            table.search(this.value).draw();
+            table.column(1).search(this.value).draw();
         });
         
         $('#roomTypeFilter').on('change', function() {

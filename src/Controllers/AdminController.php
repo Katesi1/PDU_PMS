@@ -211,7 +211,26 @@ class AdminController
     // Quản lý phòng
     public function manageRooms()
     {
-        return ['rooms' => $this->roomModel->getAllRooms()];
+        $rooms = $this->roomModel->getAllRooms();
+        $roomTypes = $this->roomModel->getRoomTypes();
+        
+        // Add room type names to rooms array
+        foreach ($rooms as &$room) {
+            $room['room_type_name'] = 'Không xác định';
+            if (!empty($room['room_type_id'])) {
+                foreach ($roomTypes as $type) {
+                    if ($type['id'] == $room['room_type_id']) {
+                        $room['room_type_name'] = $type['name'];
+                        break;
+                    }
+                }
+            }
+        }
+        
+        return [
+            'rooms' => $rooms,
+            'roomTypes' => $roomTypes
+        ];
     }
 
     public function addRoom($data)
@@ -219,9 +238,10 @@ class AdminController
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = $data['name'] ?? '';
             $capacity = $data['capacity'] ?? 0;
+            $room_type_id = $data['room_type_id'] ?? null;
 
             if ($name && $capacity) {
-                $success = $this->roomModel->addRoom($name, $capacity);
+                $success = $this->roomModel->addRoom($name, $capacity, $room_type_id);
                 if ($success) {
                     header('Location: /pdu_pms_project/public/admin/manage_rooms?message=Room added successfully');
                     exit;
@@ -232,7 +252,7 @@ class AdminController
                 return ['error' => 'Please fill in all fields'];
             }
         }
-        return [];
+        return ['roomTypes' => $this->roomModel->getRoomTypes()];
     }
 
     public function editRoom($data)
@@ -247,9 +267,10 @@ class AdminController
             $name = $data['name'] ?? '';
             $capacity = $data['capacity'] ?? 0;
             $status = $data['status'] ?? 'trống';
+            $room_type_id = $data['room_type_id'] ?? null;
 
             if ($name && $capacity) {
-                $success = $this->roomModel->updateRoom($id, $name, $capacity, $status);
+                $success = $this->roomModel->updateRoom($id, $name, $capacity, $status, $room_type_id);
                 if ($success) {
                     header('Location: /pdu_pms_project/public/admin/manage_rooms?message=Room updated successfully');
                     exit;
@@ -261,7 +282,10 @@ class AdminController
             }
         }
 
-        return ['room' => $this->roomModel->getRoomById($id)];
+        return [
+            'room' => $this->roomModel->getRoomById($id),
+            'roomTypes' => $this->roomModel->getRoomTypes()
+        ];
     }
 
     public function deleteRoom($data)
