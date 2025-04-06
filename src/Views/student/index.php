@@ -100,22 +100,26 @@ ob_start();
                                             <?php
                                             $statusClass = '';
                                             $statusText = '';
-                                            switch($booking['status']) {
-                                                case 'chờ duyệt':
+                                            switch(strtolower($booking['status'])) {
+                                                case 'pending':
                                                     $statusClass = 'text-warning';
                                                     $statusText = 'Chờ duyệt';
                                                     break;
-                                                case 'được duyệt':
+                                                case 'approved':
                                                     $statusClass = 'text-success';
                                                     $statusText = 'Đã duyệt';
                                                     break;
-                                                case 'từ chối':
+                                                case 'rejected':
                                                     $statusClass = 'text-danger';
                                                     $statusText = 'Từ chối';
                                                     break;
+                                                case 'cancelled':
+                                                    $statusClass = 'text-secondary';
+                                                    $statusText = 'Đã hủy';
+                                                    break;
                                                 default:
                                                     $statusClass = 'text-secondary';
-                                                    $statusText = 'N/A';
+                                                    $statusText = $booking['status'];
                                             }
                                             ?>
                                             <span class="<?= $statusClass ?>"><?= $statusText ?></span>
@@ -197,22 +201,26 @@ ob_start();
                                         <?php
                                         $statusClass = '';
                                         $statusText = '';
-                                        switch($booking['status']) {
-                                            case 'chờ duyệt':
+                                        switch(strtolower($booking['status'])) {
+                                            case 'pending':
                                                 $statusClass = 'bg-warning';
                                                 $statusText = 'Chờ duyệt';
                                                 break;
-                                            case 'được duyệt':
+                                            case 'approved':
                                                 $statusClass = 'bg-success';
                                                 $statusText = 'Đã duyệt';
                                                 break;
-                                            case 'từ chối':
+                                            case 'rejected':
                                                 $statusClass = 'bg-danger';
                                                 $statusText = 'Từ chối';
                                                 break;
+                                            case 'cancelled':
+                                                $statusClass = 'bg-secondary';
+                                                $statusText = 'Đã hủy';
+                                                break;
                                             default:
                                                 $statusClass = 'bg-secondary';
-                                                $statusText = 'N/A';
+                                                $statusText = $booking['status'];
                                         }
                                         ?>
                                         <span class="badge <?= $statusClass ?>"><?= $statusText ?></span>

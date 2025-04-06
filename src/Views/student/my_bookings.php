@@ -206,32 +206,46 @@ ob_start();
                                                 $statusIcon = 'clock';
                                                 
                                                 switch (strtolower($booking['status'])) {
-                                                    case 'chờ duyệt':
+                                                    case 'pending':
                                                         $statusClass = 'warning';
                                                         $statusIcon = 'clock';
                                                         break;
-                                                    case 'được duyệt':
-                                                    case 'đã duyệt':
+                                                    case 'approved':
                                                         $statusClass = 'success';
                                                         $statusIcon = 'check-circle';
                                                         break;
-                                                    case 'từ chối':
+                                                    case 'rejected':
                                                         $statusClass = 'danger';
                                                         $statusIcon = 'times-circle';
                                                         break;
-                                                    case 'đã hủy':
+                                                    case 'cancelled':
                                                         $statusClass = 'secondary';
                                                         $statusIcon = 'ban';
                                                         break;
-                                                    case 'hoàn thành':
-                                                        $statusClass = 'info';
-                                                        $statusIcon = 'flag-checkered';
+                                                }
+                                                
+                                                // Display status text in Vietnamese
+                                                $statusText = '';
+                                                switch (strtolower($booking['status'])) {
+                                                    case 'pending':
+                                                        $statusText = 'Chờ duyệt';
                                                         break;
+                                                    case 'approved':
+                                                        $statusText = 'Đã duyệt';
+                                                        break;
+                                                    case 'rejected':
+                                                        $statusText = 'Từ chối';
+                                                        break;
+                                                    case 'cancelled':
+                                                        $statusText = 'Đã hủy';
+                                                        break;
+                                                    default:
+                                                        $statusText = $booking['status'];
                                                 }
                                                 ?>
                                                 <span class="badge bg-<?php echo $statusClass; ?>">
                                                     <i class="fas fa-<?php echo $statusIcon; ?> me-1"></i>
-                                                    <?php echo ucfirst($booking['status']); ?>
+                                                    <?php echo $statusText; ?>
                                                 </span>
                                             </td>
                                             <td>

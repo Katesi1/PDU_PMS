@@ -8,15 +8,12 @@
         <div class="mb-3">
             <form action="/pdu_pms_project/public/admin/manage_bookings" method="get" class="row g-3">
                 <div class="col-md-2">
-                    <label for="start_date" class="form-label">Từ ngày</label>
-                    <input type="date" class="form-control" id="start_date" name="start_date" value="<?= $data['filters']['start_date'] ?? '' ?>">
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="<?= $data['filters']['start_date'] ?? '' ?>" placeholder="Từ ngày">
                 </div>
                 <div class="col-md-2">
-                    <label for="end_date" class="form-label">Đến ngày</label>
-                    <input type="date" class="form-control" id="end_date" name="end_date" value="<?= $data['filters']['end_date'] ?? '' ?>">
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="<?= $data['filters']['end_date'] ?? '' ?>" placeholder="Đến ngày">
                 </div>
                 <div class="col-md-3">
-                    <label for="user_id" class="form-label">Người đặt</label>
                     <select class="form-select" id="user_id" name="user_id">
                         <option value="">Tất cả người dùng</option>
                         <?php if (isset($data['users']) && is_array($data['users'])): ?>
@@ -29,26 +26,38 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label for="status" class="form-label">Trạng thái</label>
                     <select class="form-select" id="status" name="status">
-                        <option value="">Tất cả</option>
+                        <option value="">Tất cả trạng thái</option>
                         <option value="pending" <?= isset($data['filters']['status']) && $data['filters']['status'] === 'pending' ? 'selected' : '' ?>>Chờ duyệt</option>
                         <option value="approved" <?= isset($data['filters']['status']) && $data['filters']['status'] === 'approved' ? 'selected' : '' ?>>Đã duyệt</option>
                         <option value="rejected" <?= isset($data['filters']['status']) && $data['filters']['status'] === 'rejected' ? 'selected' : '' ?>>Từ chối</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-secondary me-2">
+                <div class="col-md-2 d-flex">
+                    <button type="submit" class="btn btn-primary me-2">
                         <i class="fas fa-filter me-1"></i> Lọc
                     </button>
                     <a href="/pdu_pms_project/public/admin/manage_bookings" class="btn btn-light border">
-                        <i class="fas fa-redo me-1"></i> Đặt lại
+                        <i class="fas fa-redo me-1"></i>
                     </a>
                 </div>
             </form>
         </div>
 
         <div class="table-responsive">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <select class="form-select form-select-sm d-inline-block w-auto" id="length-change">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div>
+                    <input type="search" class="form-control form-control-sm d-inline-block w-auto" placeholder="Nhập tìm kiếm..." id="table-search">
+                </div>
+            </div>
             <table class="table table-striped table-hover" id="bookingsTable">
                 <thead class="table-light">
                     <tr>
@@ -61,7 +70,7 @@
                         <th>Thao tác</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody> 
                     <?php if (isset($data['bookings']) && is_array($data['bookings'])): ?>
                         <?php foreach ($data['bookings'] as $booking): ?>
                         <tr>
@@ -91,14 +100,16 @@
                             <td><?= isset($booking['start_time']) ? date('d/m/Y H:i', strtotime($booking['start_time'])) : '' ?></td>
                             <td><?= isset($booking['end_time']) ? date('d/m/Y H:i', strtotime($booking['end_time'])) : '' ?></td>
                             <td>
-                                <?php if (($booking['status'] ?? '') == 'pending'): ?>
-                                    <span class="badge bg-secondary">Chờ duyệt</span>
-                                <?php elseif (($booking['status'] ?? '') == 'approved'): ?>
-                                    <span class="badge bg-secondary">Đã duyệt</span>
-                                <?php elseif (($booking['status'] ?? '') == 'rejected'): ?>
-                                    <span class="badge bg-secondary">Từ chối</span>
+                                <?php if (strtolower($booking['status'] ?? '') == 'pending'): ?>
+                                    <span class="badge bg-warning">Chờ duyệt</span>
+                                <?php elseif (strtolower($booking['status'] ?? '') == 'approved'): ?>
+                                    <span class="badge bg-success">Đã duyệt</span>
+                                <?php elseif (strtolower($booking['status'] ?? '') == 'rejected'): ?>
+                                    <span class="badge bg-danger">Từ chối</span>
+                                <?php elseif (strtolower($booking['status'] ?? '') == 'cancelled'): ?>
+                                    <span class="badge bg-secondary">Đã hủy</span>
                                 <?php else: ?>
-                                    <span class="badge bg-secondary">Không xác định</span>
+                                    <span class="badge bg-secondary"><?= htmlspecialchars($booking['status'] ?? 'Không xác định') ?></span>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -298,11 +309,11 @@
             // Hiển thị trạng thái với màu phù hợp
             let statusHtml = '';
             if (status === 'pending') {
-                statusHtml = '<span class="badge bg-secondary">Chờ duyệt</span>';
+                statusHtml = '<span class="badge bg-warning">Chờ duyệt</span>';
             } else if (status === 'approved') {
-                statusHtml = '<span class="badge bg-secondary">Đã duyệt</span>';
+                statusHtml = '<span class="badge bg-success">Đã duyệt</span>';
             } else if (status === 'rejected') {
-                statusHtml = '<span class="badge bg-secondary">Từ chối</span>';
+                statusHtml = '<span class="badge bg-danger">Từ chối</span>';
             } else {
                 statusHtml = '<span class="badge bg-secondary">Không xác định</span>';
             }

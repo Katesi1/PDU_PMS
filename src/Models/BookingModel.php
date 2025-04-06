@@ -238,4 +238,16 @@ class BookingModel
         $stmt = $this->db->prepare("UPDATE bookings SET status = ? WHERE id = ?");
         return $stmt->execute([$status, $id]);
     }
+
+    /**
+     * Lấy số lượng đặt phòng đang chờ duyệt
+     * @return int Số lượng đặt phòng chờ duyệt
+     */
+    public function getPendingBookingsCount()
+    {
+        $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM bookings WHERE status = 'pending'");
+        $stmt->execute();
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $result['count'] ?? 0;
+    }
 }

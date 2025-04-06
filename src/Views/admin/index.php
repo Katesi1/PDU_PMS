@@ -84,7 +84,7 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs fw-bold text-primary text-uppercase mb-1">Tổng số phòng</div>
-                        <div class="h5 mb-0 fw-bold text-gray-800"><?= $data['total_rooms'] ?? 42 ?></div>
+                        <div class="h5 mb-0 fw-bold text-gray-800"><?= $data['stats']['total_rooms'] ?? 0 ?></div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-door-open fa-2x text-gray-300"></i>
@@ -100,7 +100,7 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs fw-bold text-success text-uppercase mb-1">Lượt đặt phòng hôm nay</div>
-                        <div class="h5 mb-0 fw-bold text-gray-800"><?= $data['today_bookings'] ?? 128 ?></div>
+                        <div class="h5 mb-0 fw-bold text-gray-800"><?= $data['stats']['today_bookings'] ?? 0 ?></div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
@@ -116,7 +116,7 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs fw-bold text-info text-uppercase mb-1">Tổng số người dùng</div>
-                        <div class="h5 mb-0 fw-bold text-gray-800"><?= $data['total_users'] ?? 256 ?></div>
+                        <div class="h5 mb-0 fw-bold text-gray-800"><?= $data['stats']['total_users'] ?? 0 ?></div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-users fa-2x text-gray-300"></i>
@@ -132,7 +132,7 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs fw-bold text-warning text-uppercase mb-1">Yêu cầu chờ duyệt</div>
-                        <div class="h5 mb-0 fw-bold text-gray-800"><?= $data['pending_bookings'] ?? 15 ?></div>
+                        <div class="h5 mb-0 fw-bold text-gray-800"><?= $data['pending_bookings'] ?? 0 ?></div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-clock fa-2x text-gray-300"></i>
@@ -176,66 +176,88 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>01/04/2025 09:45</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-sm me-2" style="background-color: #4CAF50;">N</div>
-                                        Nguyễn Văn A
-                                    </div>
-                                </td>
-                                <td>Đặt phòng B401</td>
-                                <td><span class="badge bg-success">Thành công</span></td>
-                                <td><button class="btn btn-sm btn-link"><i class="fas fa-eye"></i></button></td>
-                            </tr>
-                            <tr>
-                                <td>01/04/2025 09:30</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-sm me-2" style="background-color: #2196F3;">L</div>
-                                        Lê Thị B
-                                    </div>
-                                </td>
-                                <td>Hủy đặt phòng A302</td>
-                                <td><span class="badge bg-warning text-dark">Đã hủy</span></td>
-                                <td><button class="btn btn-sm btn-link"><i class="fas fa-eye"></i></button></td>
-                            </tr>
-                            <tr>
-                                <td>01/04/2025 09:15</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-sm me-2" style="background-color: #9C27B0;">T</div>
-                                        Trần Văn C
-                                    </div>
-                                </td>
-                                <td>Yêu cầu đặt phòng C201</td>
-                                <td><span class="badge bg-primary">Chờ duyệt</span></td>
-                                <td><button class="btn btn-sm btn-link"><i class="fas fa-eye"></i></button></td>
-                            </tr>
-                            <tr>
-                                <td>01/04/2025 09:00</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-sm me-2" style="background-color: #F44336;">P</div>
-                                        Phạm Thị D
-                                    </div>
-                                </td>
-                                <td>Báo cáo hỏng thiết bị phòng D105</td>
-                                <td><span class="badge bg-danger">Sự cố</span></td>
-                                <td><button class="btn btn-sm btn-link"><i class="fas fa-eye"></i></button></td>
-                            </tr>
-                            <tr>
-                                <td>01/04/2025 08:45</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-sm me-2" style="background-color: #FF9800;">V</div>
-                                        Vũ Văn E
-                                    </div>
-                                </td>
-                                <td>Đăng ký lịch dạy phòng E402</td>
-                                <td><span class="badge bg-success">Thành công</span></td>
-                                <td><button class="btn btn-sm btn-link"><i class="fas fa-eye"></i></button></td>
-                            </tr>
+                            <?php if (isset($data['recent_activities']) && !empty($data['recent_activities'])): ?>
+                                <?php foreach ($data['recent_activities'] as $activity): ?>
+                                    <?php 
+                                    // Define status class and label based on activity type and status
+                                    $statusClass = 'bg-secondary';
+                                    $statusLabel = 'Không xác định';
+                                    
+                                    if (isset($activity['type'])) {
+                                        if ($activity['type'] === 'booking') {
+                                            $bookingStatus = $activity['status'] ?? '';
+                                            
+                                            switch (strtolower($bookingStatus)) {
+                                                case 'pending':
+                                                    $statusClass = 'bg-warning';
+                                                    $statusLabel = 'Chờ duyệt';
+                                                    break;
+                                                case 'approved':
+                                                    $statusClass = 'bg-success';
+                                                    $statusLabel = 'Đã duyệt';
+                                                    break;
+                                                case 'rejected':
+                                                    $statusClass = 'bg-danger';
+                                                    $statusLabel = 'Từ chối';
+                                                    break;
+                                                case 'cancelled':
+                                                    $statusClass = 'bg-secondary';
+                                                    $statusLabel = 'Đã hủy';
+                                                    break;
+                                            }
+                                        } elseif ($activity['type'] === 'user_registration') {
+                                            $statusClass = 'bg-info';
+                                            $statusLabel = 'Đăng ký mới';
+                                        } elseif ($activity['type'] === 'room_issue') {
+                                            $statusClass = 'bg-danger';
+                                            $statusLabel = 'Sự cố';
+                                        }
+                                    }
+                                    
+                                    // Generate initials for avatar
+                                    $initials = '';
+                                    $fullname = $activity['user_name'] ?? '';
+                                    $nameParts = explode(' ', $fullname);
+                                    if (count($nameParts) > 0) {
+                                        $lastName = end($nameParts);
+                                        $initials = mb_substr($lastName, 0, 1, 'UTF-8');
+                                    }
+                                    
+                                    // Random background color for avatar
+                                    $bgColors = ['#4CAF50', '#2196F3', '#9C27B0', '#F44336', '#FF9800'];
+                                    $colorIndex = isset($activity['user_id']) ? $activity['user_id'] % count($bgColors) : 0;
+                                    $bgColor = $bgColors[$colorIndex];
+                                    ?>
+                                    <tr>
+                                        <td><?= isset($activity['timestamp']) ? date('d/m/Y H:i', strtotime($activity['timestamp'])) : '-' ?></td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm me-2" style="background-color: <?= $bgColor ?>;"><?= $initials ?></div>
+                                                <?= htmlspecialchars($activity['user_name'] ?? 'Không xác định') ?>
+                                            </div>
+                                        </td>
+                                        <td><?= htmlspecialchars($activity['message'] ?? 'Không có thông tin') ?></td>
+                                        <td><span class="badge <?= $statusClass ?>"><?= $statusLabel ?></span></td>
+                                        <td>
+                                            <?php if ($activity['type'] === 'booking' && isset($activity['booking_id'])): ?>
+                                                <a href="/pdu_pms_project/public/admin/booking_detail/<?= $activity['booking_id'] ?>" class="btn btn-sm btn-link">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            <?php elseif ($activity['type'] === 'user_registration' && isset($activity['user_id'])): ?>
+                                                <a href="/pdu_pms_project/public/admin/edit_user/<?= $activity['user_id'] ?>" class="btn btn-sm btn-link">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            <?php else: ?>
+                                                <button class="btn btn-sm btn-link" disabled><i class="fas fa-eye"></i></button>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" class="text-center py-4">Không có hoạt động nào gần đây</td>
+                                </tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -271,36 +293,25 @@ include __DIR__ . '/../layouts/admin_layout.php'; ?>
                     <canvas id="roomUsageChart" height="300"></canvas>
                 </div>
                 <div class="mt-3">
-                    <div class="mb-1">
-                        <i class="fas fa-circle text-primary me-1"></i> Phòng học <span class="float-end">75%</span>
-                        <div class="progress mb-2" style="height: 8px;">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+                    <?php if (!empty($data['most_used_rooms'])): ?>
+                        <?php foreach ($data['most_used_rooms'] as $index => $room): ?>
+                            <?php 
+                            $colors = ['primary', 'success', 'info', 'warning', 'danger'];
+                            $colorIndex = $index % count($colors);
+                            $color = $colors[$colorIndex];
+                            ?>
+                            <div class="mb-1">
+                                <i class="fas fa-circle text-<?= $color ?> me-1"></i> <?= htmlspecialchars($room['room_type_name']) ?> <span class="float-end"><?= $room['usage_percent'] ?>%</span>
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar bg-<?= $color ?>" role="progressbar" style="width: <?= $room['usage_percent'] ?>%" aria-valuenow="<?= $room['usage_percent'] ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="alert alert-info">
+                            Không có dữ liệu sử dụng phòng.
                         </div>
-                    </div>
-                    <div class="mb-1">
-                        <i class="fas fa-circle text-success me-1"></i> Phòng thực hành <span class="float-end">60%</span>
-                        <div class="progress mb-2" style="height: 8px;">
-                            <div class="progress-bar bg-success" role="progressbar" style="width: 60%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                    </div>
-                    <div class="mb-1">
-                        <i class="fas fa-circle text-info me-1"></i> Phòng hội thảo <span class="float-end">45%</span>
-                        <div class="progress mb-2" style="height: 8px;">
-                            <div class="progress-bar bg-info" role="progressbar" style="width: 45%" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                    </div>
-                    <div class="mb-1">
-                        <i class="fas fa-circle text-warning me-1"></i> Phòng thí nghiệm <span class="float-end">80%</span>
-                        <div class="progress mb-2" style="height: 8px;">
-                            <div class="progress-bar bg-warning" role="progressbar" style="width: 80%" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                    </div>
-                    <div class="mb-1">
-                        <i class="fas fa-circle text-danger me-1"></i> Phòng họp <span class="float-end">30%</span>
-                        <div class="progress mb-2" style="height: 8px;">
-                            <div class="progress-bar bg-danger" role="progressbar" style="width: 30%" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -318,9 +329,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const roomUsageChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Phòng học', 'Phòng thực hành', 'Phòng hội thảo', 'Phòng thí nghiệm', 'Phòng họp'],
+            labels: <?= json_encode(array_column($data['most_used_rooms'] ?? [], 'room_type_name')) ?>,
             datasets: [{
-                data: [75, 60, 45, 80, 30],
+                data: <?= json_encode(array_column($data['most_used_rooms'] ?? [], 'usage_percent')) ?>,
                 backgroundColor: [
                     'rgba(78, 115, 223, 0.8)',
                     'rgba(40, 167, 69, 0.8)',

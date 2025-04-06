@@ -47,9 +47,15 @@ class AdminController
         $rooms_in_use_change_percent = $yesterday_rooms_in_use > 0
             ? round((($rooms_in_use - $yesterday_rooms_in_use) / $yesterday_rooms_in_use) * 100, 1)
             : 0;
+            
+        // Số lượng đặt phòng đang chờ duyệt
+        $pending_bookings = $this->bookingModel->getPendingBookingsCount();
 
         $data = [
             'title' => 'Admin Dashboard',
+            
+            // Số yêu cầu đặt phòng chờ duyệt
+            'pending_bookings' => $pending_bookings,
 
             // Thống kê tổng quan với phần trăm thay đổi
             'stats' => [
@@ -125,8 +131,10 @@ class AdminController
                     $activities[] = [
                         'type' => 'booking',
                         'booking_id' => $booking['id'],
+                        'user_id' => $userId,
                         'user_name' => $user['username'],
                         'room_name' => $room['room_number'],
+                        'status' => $booking['status'],
                         'timestamp' => $booking['created_at'] ?? date('Y-m-d H:i:s'),
                         'message' => "{$user['username']} đã đặt phòng {$room['room_number']}"
                     ];
@@ -488,7 +496,7 @@ class AdminController
             $class_code = $data['class_code'] ?? '';
             $start_time = $data['start_time'] ?? '';
             $end_time = $data['end_time'] ?? '';
-            $status = $data['status'] ?? 'chờ duyệt';
+            $status = $data['status'] ?? 'pending';
 
             if ($room_id && $class_code && $start_time && $end_time) {
                 if ($user_type === 'teacher' && !$teacher_id) {
@@ -587,7 +595,7 @@ class AdminController
             $class_code = $data['class_code'] ?? '';
             $start_time = $data['start_time'] ?? '';
             $end_time = $data['end_time'] ?? '';
-            $status = $data['status'] ?? 'chờ duyệt';
+            $status = $data['status'] ?? 'pending';
 
             if ($room_id && $class_code && $start_time && $end_time) {
                 if ($user_type === 'teacher' && !$teacher_id) {

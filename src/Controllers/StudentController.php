@@ -239,7 +239,7 @@ class StudentController {
                     'class_code' => $user['class_code'],
                     'start_time' => $formatted_start,
                     'end_time' => $formatted_end,
-                    'status' => 'chờ duyệt' // Student bookings need approval
+                    'status' => 'pending' // Student bookings need approval
                 ];
 
                 if ($this->bookingModel->addBooking($bookingData)) {

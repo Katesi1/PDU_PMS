@@ -210,7 +210,7 @@ class TeacherController {
                     'class_code' => $class_code,
                     'start_time' => $formatted_start,
                     'end_time' => $formatted_end,
-                    'status' => 'được duyệt'  // Teacher bookings are automatically approved
+                    'status' => 'pending'  // Teacher bookings also need approval
                 ];
 
                 if ($this->bookingModel->addBooking($bookingData)) {
