@@ -483,7 +483,32 @@ class AdminController
     // Quản lý đặt phòng
     public function manageBookings()
     {
-        return ['bookings' => $this->bookingModel->getAllBookings()];
+        $filters = [];
+        
+        // Lấy các tham số lọc nếu có
+        if (isset($_GET['user_id']) && !empty($_GET['user_id'])) {
+            $filters['user_id'] = $_GET['user_id'];
+        }
+        
+        if (isset($_GET['status']) && !empty($_GET['status'])) {
+            $filters['status'] = $_GET['status'];
+        }
+        
+        if (isset($_GET['start_date']) && !empty($_GET['start_date'])) {
+            $filters['start_date'] = $_GET['start_date'];
+        }
+        
+        if (isset($_GET['end_date']) && !empty($_GET['end_date'])) {
+            $filters['end_date'] = $_GET['end_date'];
+        }
+        
+        // Trả về dữ liệu cho view, bao gồm danh sách phòng và người dùng
+        return [
+            'bookings' => $this->bookingModel->getAllBookings(),
+            'rooms' => $this->roomModel->getAllRooms(),
+            'users' => $this->userModel->getAllUsers(),
+            'filters' => $filters
+        ];
     }
 
     public function addBooking($data)
@@ -1161,5 +1186,249 @@ class AdminController
                 ]
             ]
         ];
+    }
+
+    /**
+     * Create sample bookings for testing
+     */
+    public function createSampleBookings()
+    {
+        // Get all room ids
+        $rooms = $this->roomModel->getAllRooms();
+        $roomIds = array_column($rooms, 'id');
+        
+        // Get teacher and student ids
+        $teachers = $this->userModel->getUsersByRole('teacher');
+        $students = $this->userModel->getUsersByRole('student');
+        
+        $teacherIds = array_column($teachers, 'id');
+        $studentIds = array_column($students, 'id');
+        
+        // Class codes
+        $classCodes = ['CNTT01', 'CNTT02', 'CNTT03', 'KTPM01', 'KTPM02'];
+        
+        // Create 10 bookings
+        $bookingsCreated = 0;
+        
+        for ($i = 0; $i < 10; $i++) {
+            $roomId = $roomIds[array_rand($roomIds)];
+            
+            // Alternate between teacher and student bookings
+            $teacherId = ($i % 2 == 0) ? $teacherIds[array_rand($teacherIds)] : null;
+            $studentId = ($i % 2 == 1) ? $studentIds[array_rand($studentIds)] : null;
+            
+            $classCode = $classCodes[array_rand($classCodes)];
+            
+            $startDate = date('Y-m-d H:i:s', strtotime('+' . $i . ' day'));
+            $endDate = date('Y-m-d H:i:s', strtotime('+' . $i . ' day +2 hours'));
+            
+            $bookingData = [
+                'room_id' => $roomId,
+                'teacher_id' => $teacherId,
+                'student_id' => $studentId,
+                'class_code' => $classCode,
+                'start_time' => $startDate,
+                'end_time' => $endDate,
+                'status' => 'chờ duyệt'
+            ];
+            
+            if ($this->bookingModel->addBooking($bookingData)) {
+                $bookingsCreated++;
+            }
+        }
+        
+        header('Location: /pdu_pms_project/public/admin/manage_bookings?message=Created ' . $bookingsCreated . ' sample bookings');
+        exit;
+    }
+
+    public function getUsersByRole($data = [])
+    {
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+            header('Location: /pdu_pms_project/public/login');
+            exit;
+        }
+        
+        $role = isset($_GET['role']) ? $_GET['role'] : null;
+        
+        if (!$role) {
+            echo json_encode(['error' => 'Role parameter is required']);
+            return;
+        }
+        
+        $users = $this->userModel->getUsersByRole($role);
+        echo json_encode(['users' => $users]);
+        exit;
+    }
+    
+    public function assignRoom($data)
+    {
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+            header('Location: /pdu_pms_project/public/login');
+            exit;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /pdu_pms_project/public/admin/manage_bookings');
+            exit;
+        }
+        
+        $room_id = $data['room_id'] ?? null;
+        $user_type = $data['user_type'] ?? null;
+        $user_id = $data['user_id'] ?? null;
+        $class_code = $data['class_code'] ?? '';
+        $start_time = $data['start_time'] ?? '';
+        $end_time = $data['end_time'] ?? '';
+        $purpose = $data['purpose'] ?? '';
+        $status = $data['status'] ?? 'pending';
+        
+        if (!$room_id || !$user_type || !$user_id || !$start_time || !$end_time) {
+            header('Location: /pdu_pms_project/public/admin/manage_bookings?error=missing_fields');
+            exit;
+        }
+        
+        // Kiểm tra xung đột lịch
+        $conflict = $this->bookingModel->checkBookingConflict($room_id, $start_time, $end_time);
+        if ($conflict) {
+            header('Location: /pdu_pms_project/public/admin/manage_bookings?error=conflict');
+            exit;
+        }
+        
+        $bookingData = [
+            'room_id' => $room_id,
+            'user_id' => $user_id,
+            'class_code' => $class_code,
+            'start_time' => $start_time,
+            'end_time' => $end_time,
+            'purpose' => $purpose,
+            'status' => $status
+        ];
+        
+        $success = $this->bookingModel->addBooking($bookingData);
+        
+        if ($success) {
+            header('Location: /pdu_pms_project/public/admin/manage_bookings?message=success');
+        } else {
+            header('Location: /pdu_pms_project/public/admin/manage_bookings?error=failed');
+        }
+        exit;
+    }
+    
+    /**
+     * Tạo đặt phòng mẫu với người dùng thực tế từ CSDL
+     */
+    public function createSampleBookingsWithUsers()
+    {
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+            header('Location: /pdu_pms_project/public/login');
+            exit;
+        }
+        
+        // Lấy danh sách người dùng
+        $teachers = $this->userModel->getUsersByRole('teacher');
+        $students = $this->userModel->getUsersByRole('student');
+        
+        // Lấy danh sách phòng
+        $rooms = $this->roomModel->getAllRooms();
+        
+        if (empty($teachers) || empty($students) || empty($rooms)) {
+            header('Location: /pdu_pms_project/public/admin/manage_bookings?error=no_data');
+            exit;
+        }
+        
+        // Tạo mảng status với trọng số để tạo dữ liệu ngẫu nhiên có ý nghĩa
+        $statuses = [
+            'approved' => 60, // 60% khả năng được chọn
+            'pending' => 30,  // 30% khả năng được chọn
+            'rejected' => 10  // 10% khả năng được chọn
+        ];
+        
+        // Mã lớp học mẫu
+        $classCodes = ['CS101', 'MATH202', 'ENG305', 'PHYS101', 'CHEM203', 'BIO220', 'HIST105', 'ECO201'];
+        
+        // Tạo 10 đặt phòng mẫu
+        $successCount = 0;
+        
+        for ($i = 0; $i < 10; $i++) {
+            // Lấy ngẫu nhiên ngày bắt đầu trong 15 ngày tới
+            $startDay = date('Y-m-d', strtotime('+' . rand(1, 15) . ' days'));
+            $startHour = rand(7, 16); // Giờ bắt đầu từ 7h đến 16h
+            $duration = rand(1, 3); // Thời lượng từ 1-3 giờ
+            
+            $startTime = date('Y-m-d H:i:s', strtotime("$startDay $startHour:00:00"));
+            $endTime = date('Y-m-d H:i:s', strtotime("$startDay " . ($startHour + $duration) . ":00:00"));
+            
+            // Chọn ngẫu nhiên giữa giáo viên và sinh viên
+            $userType = (rand(1, 100) > 70) ? 'student' : 'teacher'; // 70% là giáo viên, 30% là sinh viên
+            $users = ($userType === 'teacher') ? $teachers : $students;
+            
+            if (empty($users)) {
+                continue; // Bỏ qua nếu không có người dùng
+            }
+            
+            // Chọn ngẫu nhiên người dùng và phòng
+            $randomUser = $users[array_rand($users)];
+            $randomRoom = $rooms[array_rand($rooms)];
+            
+            // Chọn trạng thái dựa trên trọng số
+            $status = $this->getRandomWeightedElement($statuses);
+            
+            // Chọn ngẫu nhiên mã lớp học
+            $classCode = $classCodes[array_rand($classCodes)];
+            
+            // Mục đích sử dụng mẫu
+            $purposes = [
+                'Giảng dạy lý thuyết',
+                'Thực hành phòng máy',
+                'Hội thảo chuyên đề',
+                'Buổi thảo luận nhóm',
+                'Bảo vệ đồ án/luận văn',
+                'Kiểm tra giữa kỳ',
+                'Thi cuối kỳ'
+            ];
+            $purpose = $purposes[array_rand($purposes)];
+            
+            // Kiểm tra xung đột
+            $conflict = $this->bookingModel->checkBookingConflict($randomRoom['id'], $startTime, $endTime);
+            if ($conflict) {
+                // Nếu xung đột, thử lại ngày/giờ khác
+                $i--; // Giảm biến đếm để đảm bảo tạo đủ số lượng yêu cầu
+                continue;
+            }
+            
+            // Tạo dữ liệu đặt phòng
+            $bookingData = [
+                'room_id' => $randomRoom['id'],
+                'user_id' => $randomUser['id'],
+                'class_code' => $classCode,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'purpose' => $purpose,
+                'status' => $status
+            ];
+            
+            $success = $this->bookingModel->addBooking($bookingData);
+            if ($success) {
+                $successCount++;
+            }
+        }
+        
+        header('Location: /pdu_pms_project/public/admin/manage_bookings?message=Created ' . $successCount . ' sample bookings');
+        exit;
+    }
+    
+    /**
+     * Hàm hỗ trợ lấy phần tử ngẫu nhiên theo trọng số
+     */
+    private function getRandomWeightedElement(array $weightedValues) {
+        $rand = mt_rand(1, (int) array_sum($weightedValues));
+        
+        foreach ($weightedValues as $key => $value) {
+            $rand -= $value;
+            if ($rand <= 0) {
+                return $key;
+            }
+        }
+        
+        return array_key_first($weightedValues); // Fallback
     }
 }

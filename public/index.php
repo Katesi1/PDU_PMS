@@ -191,6 +191,7 @@ switch ($uri) {
         $adminController->deleteTimetable($_GET); // Không gán $data vì dùng redirect
         break;
     case 'admin/manage_bookings':
+        $adminController = new \Controllers\AdminController();
         $data = $adminController->manageBookings();
         require_once __DIR__ . '/../src/Views/admin/manage_bookings.php';
         break;
@@ -388,9 +389,49 @@ switch ($uri) {
         $data = $adminController->systemLogs();
         require_once __DIR__ . '/../src/Views/admin/system_logs.php';
         break;
+    case 'admin/create_sample_bookings':
+        $adminController = new \Controllers\AdminController();
+        $adminController->createSampleBookingsWithUsers();
+        break;
+    case 'admin/get_users_by_role':
+        $adminController = new \Controllers\AdminController();
+        $adminController->getUsersByRole();
+        break;
+    case 'admin/assign_room':
+        $adminController = new \Controllers\AdminController();
+        $adminController->assignRoom($_POST);
+        break;
+    case 'admin/view_booking':
+        // This case should only handle /admin/view_booking without an ID parameter
+        header('Location: /pdu_pms_project/public/admin/manage_bookings');
+        exit;
+        break;
     default:
         // Handle paths with IDs
-        if (preg_match('/^admin\/edit_room\/(\d+)$/', $uri, $matches)) {
+        if (preg_match('/^admin\/edit_user\/(\d+)$/', $uri, $matches)) {
+            $_GET['id'] = $matches[1];
+            $data = $adminController->editUser(array_merge($_GET, $_POST));
+            require_once __DIR__ . '/../src/Views/admin/edit_user.php';
+            break;
+        } elseif (preg_match('/^admin\/delete_booking\/(\d+)$/', $uri, $matches)) {
+            $_GET['id'] = $matches[1];
+            $adminController = new \Controllers\AdminController();
+            $adminController->deleteBooking($_GET);
+            break;
+        } elseif (preg_match('/^admin\/view_booking\/(\d+)$/', $uri, $matches)) {
+            $_GET['id'] = $matches[1];
+            $data = [];
+            $bookingModel = new \Models\BookingModel();
+            $booking = $bookingModel->getBookingById($_GET['id']);
+            if ($booking) {
+                $data['booking'] = $booking;
+                require_once __DIR__ . '/../src/Views/admin/view_booking.php';
+            } else {
+                header('Location: /pdu_pms_project/public/admin/manage_bookings?error=Booking not found');
+                exit;
+            }
+            break;
+        } elseif (preg_match('/^admin\/edit_room\/(\d+)$/', $uri, $matches)) {
             $_GET['id'] = $matches[1];
             $data = $adminController->editRoom(array_merge($_GET, $_POST));
             require_once __DIR__ . '/../src/Views/admin/edit_room.php';
@@ -455,23 +496,6 @@ switch ($uri) {
         } elseif (preg_match('/^admin\/delete_room_type\/(\d+)$/', $uri, $matches)) {
             $_GET['id'] = $matches[1];
             $adminController->deleteRoomType($_GET);
-            break;
-        } elseif (preg_match('/^admin\/delete_booking\/(\d+)$/', $uri, $matches)) {
-            $_GET['id'] = $matches[1];
-            $adminController->deleteBooking($_GET);
-            break;
-        } elseif (preg_match('/^admin\/view_booking\/(\d+)$/', $uri, $matches)) {
-            $_GET['id'] = $matches[1];
-            $data = [];
-            $bookingModel = new \Models\BookingModel();
-            $booking = $bookingModel->getBookingById($_GET['id']);
-            if ($booking) {
-                $data['booking'] = $booking;
-                require_once __DIR__ . '/../src/Views/admin/view_booking.php';
-            } else {
-                header('Location: /pdu_pms_project/public/admin/manage_bookings?error=Booking not found');
-                exit;
-            }
             break;
         } elseif (preg_match('/^admin\/approve_booking\/(\d+)$/', $uri, $matches)) {
             $_GET['id'] = $matches[1];

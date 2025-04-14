@@ -230,13 +230,19 @@ class BookingModel
      */
     public function updateBookingStatus($id, $status)
     {
-        $validStatuses = ['approved', 'rejected', 'pending'];
-        if (!in_array($status, $validStatuses)) {
-            return false;
-        }
-
+        // Map standard status values to legacy values if needed
+        $statusMapping = [
+            'approved' => 'được duyệt',
+            'rejected' => 'từ chối',
+            'pending' => 'chờ duyệt',
+            'cancelled' => 'đã hủy'
+        ];
+        
+        // Use the mapped value if it exists, otherwise use the original value
+        $dbStatus = isset($statusMapping[$status]) ? $statusMapping[$status] : $status;
+        
         $stmt = $this->db->prepare("UPDATE bookings SET status = ? WHERE id = ?");
-        return $stmt->execute([$status, $id]);
+        return $stmt->execute([$dbStatus, $id]);
     }
 
     /**

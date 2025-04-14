@@ -85,4 +85,16 @@ class UserModel {
         $stmt = $this->db->prepare("DELETE FROM users WHERE id = ?");
         return $stmt->execute([$id]);
     }
+
+    /**
+     * Get all users with a specific role
+     * 
+     * @param string $role Role to filter by (admin, teacher, student)
+     * @return array List of users with the specified role
+     */
+    public function getUsersByRole($role) {
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE role = ?");
+        $stmt->execute([$role]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
 }

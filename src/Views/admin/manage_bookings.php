@@ -1,8 +1,13 @@
 <?php include __DIR__ . '/../layouts/admin_layout.php'; ?>
 
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-light">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i> Quản lý đặt phòng</h5>
+        <div>
+            <a href="/pdu_pms_project/public/admin/add_booking" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus me-1"></i> Thêm đặt phòng
+            </a>
+        </div>
     </div>
     <div class="card-body">
         <div class="mb-3">
@@ -79,20 +84,31 @@
                                 <div class="d-flex align-items-center">
                                     <?php
                                     $initials = '';
-                                    $fullname = $booking['user_fullname'] ?? $booking['user_name'] ?? '';
+                                    $fullname = '';
+                                    
+                                    // Ưu tiên hiển thị tên giáo viên, nếu không có thì hiển thị tên sinh viên
+                                    if (!empty($booking['teacher_name'])) {
+                                        $fullname = $booking['teacher_name'];
+                                        $role = 'Giáo viên';
+                                    } elseif (!empty($booking['student_name'])) {
+                                        $fullname = $booking['student_name'];
+                                        $role = 'Sinh viên';
+                                    }
+                                    
                                     $nameParts = explode(' ', $fullname);
                                     if (count($nameParts) > 0) {
                                         $lastName = end($nameParts);
                                         $initials = mb_substr($lastName, 0, 1, 'UTF-8');
                                     }
+                                    
                                     $bgColors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'];
-                                    $colorIndex = isset($booking['user_id']) ? $booking['user_id'] % count($bgColors) : 0;
+                                    $colorIndex = isset($booking['id']) ? $booking['id'] % count($bgColors) : 0;
                                     $bgColor = $bgColors[$colorIndex];
                                     ?>
                                     <div class="avatar-sm me-2" style="background-color: <?= $bgColor ?>;"><?= $initials ?></div>
                                     <div>
-                                        <div class="fw-semibold"><?= htmlspecialchars($booking['user_fullname'] ?? $booking['user_name'] ?? '') ?></div>
-                                        <small class="text-muted">ID: <?= $booking['user_id'] ?? '' ?></small>
+                                        <div class="fw-semibold"><?= htmlspecialchars($fullname) ?></div>
+                                        <small class="text-muted"><?= $role ?? 'Người dùng' ?></small>
                                     </div>
                                 </div>
                             </td>
@@ -241,52 +257,55 @@
 }
 </style>
 
-<!-- Script xử lý thao tác và khởi tạo DataTable -->
+<!-- Add DataTables library for better table management -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+
 <script>
     $(document).ready(function() {
-        // Khởi tạo DataTable
-        const table = $('#bookingsTable').DataTable({
-            language: {
-                url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/vi.json'
-            },
-            order: [[0, 'desc']],
+        // Initialize DataTable
+        var bookingsTable = $('#bookingsTable').DataTable({
+            responsive: true,
+            searching: true,
+            lengthChange: true,
             pageLength: 10,
-            lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Tất cả"]]
+            language: {
+                lengthMenu: "",
+                search: "",
+                zeroRecords: "Không tìm thấy dữ liệu phù hợp",
+                info: "Hiển thị _START_ đến _END_ của _TOTAL_ mục",
+                infoEmpty: "Hiển thị 0 đến 0 của 0 mục",
+                infoFiltered: "(lọc từ _MAX_ mục)",
+                paginate: {
+                    first: "Đầu",
+                    last: "Cuối",
+                    next: "Tiếp",
+                    previous: "Trước"
+                }
+            },
+            dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6">>rtip'
         });
         
-        // Xử lý xóa đặt phòng
-        $(document).on('click', '.delete-booking', function() {
-            const bookingId = $(this).data('id');
-            const roomName = $(this).data('room');
-            
-            if (confirm('Bạn có chắc chắn muốn xóa đặt phòng cho phòng "' + roomName + '"?\nHành động này không thể hoàn tác.')) {
-                // Tạo form ẩn để submit
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/pdu_pms_project/public/admin/delete_booking/' + bookingId;
-                
-                // Thêm CSRF token nếu cần
-                const csrfToken = document.createElement('input');
-                csrfToken.type = 'hidden';
-                csrfToken.name = 'csrf_token';
-                csrfToken.value = '<?= $_SESSION['csrf_token'] ?? '' ?>';
-                form.appendChild(csrfToken);
-                
-                // Thêm method field để xác định đây là DELETE request
-                const methodField = document.createElement('input');
-                methodField.type = 'hidden';
-                methodField.name = '_method';
-                methodField.value = 'DELETE';
-                form.appendChild(methodField);
-                
-                // Thêm form vào body và submit
-                document.body.appendChild(form);
-                form.submit();
-                document.body.removeChild(form);
-            }
+        // Make length selector nicer
+        $('.dataTables_length select').addClass('form-select-sm');
+        
+        // Remove the text "Hiển thị [entries]" 
+        $('.dataTables_length label').contents().filter(function() {
+            return this.nodeType === 3; // Text node
+        }).remove();
+        
+        // Connect custom search box with DataTables search
+        $('#table-search').on('keyup', function() {
+            bookingsTable.search(this.value).draw();
         });
         
-        // Xử lý hiển thị chi tiết đặt phòng
+        // Connect custom length menu with DataTables
+        $('#length-change').on('change', function() {
+            bookingsTable.page.len($(this).val()).draw();
+        });
+
+        // View booking details
         $(document).on('click', '.view-booking-details', function() {
             const id = $(this).data('id');
             const user = $(this).data('user');
@@ -326,37 +345,21 @@
         
         // Xử lý xóa từ trong modal
         $(document).on('click', '#modal-delete-link', function() {
-            const bookingId = $(this).data('id');
-            const roomName = $(this).data('room');
-            
-            if (confirm('Bạn có chắc chắn muốn xóa đặt phòng cho phòng "' + roomName + '"?\nHành động này không thể hoàn tác.')) {
-                // Tạo form ẩn để submit
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/pdu_pms_project/public/admin/delete_booking/' + bookingId;
-                
-                // Thêm CSRF token nếu cần
-                const csrfToken = document.createElement('input');
-                csrfToken.type = 'hidden';
-                csrfToken.name = 'csrf_token';
-                csrfToken.value = '<?= $_SESSION['csrf_token'] ?? '' ?>';
-                form.appendChild(csrfToken);
-                
-                // Thêm method field để xác định đây là DELETE request
-                const methodField = document.createElement('input');
-                methodField.type = 'hidden';
-                methodField.name = '_method';
-                methodField.value = 'DELETE';
-                form.appendChild(methodField);
-                
-                // Thêm form vào body và submit
-                document.body.appendChild(form);
-                form.submit();
-                document.body.removeChild(form);
+            if (confirm('Bạn có chắc chắn muốn xóa đặt phòng này?')) {
+                const id = $(this).data('id');
+                window.location.href = '/pdu_pms_project/public/admin/delete_booking/' + id;
             }
         });
         
-        // Khởi tạo tooltips
+        // Handle deletion button outside modal
+        $(document).on('click', '.delete-booking', function() {
+            if (confirm('Bạn có chắc chắn muốn xóa đặt phòng cho phòng ' + $(this).data('room') + '?')) {
+                const id = $(this).data('id');
+                window.location.href = '/pdu_pms_project/public/admin/delete_booking/' + id;
+            }
+        });
+
+        // Enable tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Biểu Đồ Hệ Thống PDU_PMS</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        border-radius: 5px;
+      }
+      h1,
+      h2 {
+        color: #333;
+      }
+      .diagram-container {
+        margin: 30px 0;
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 5px;
+      }
+      .mermaid {
+        font-size: 16px;
+        display: flex;
+        justify-content: center;
+      }
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 20px;
+      }
+      .tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        background: #eee;
+        border: 1px solid #ddd;
+        border-bottom: none;
+        margin-right: 5px;
+        border-radius: 5px 5px 0 0;
+      }
+      .tab.active {
+        background: white;
+        border-bottom: 1px solid white;
+        margin-bottom: -1px;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Biểu Đồ Hệ Thống PDU_PMS</h1>
+
+      <div class="tabs">
+        <div class="tab active" onclick="openTab(event, 'activity')">
+          Biểu Đồ Hoạt Động
+        </div>
+        <div class="tab" onclick="openTab(event, 'dataflow')">
+          Biểu Đồ Luồng Dữ Liệu
+        </div>
+        <div class="tab" onclick="openTab(event, 'mvc')">Kiến Trúc MVC</div>
+        <div class="tab" onclick="openTab(event, 'database')">
+          Cơ Sở Dữ Liệu
+        </div>
+      </div>
+
+      <div id="activity" class="tab-content active">
+        <h2>Biểu Đồ Hoạt Động (Activity Diagram)</h2>
+        <div class="diagram-container">
+          <pre class="mermaid">
+graph TD
+%% Main System Flow
+Start((Start)) --> Login[Đăng nhập]
+Login --> AuthCheck{Xác thực người dùng}
+AuthCheck -->|Thất bại| Login
+
+%% Role-based Flow
+AuthCheck -->|Admin| AdminDashboard[Bảng điều khiển Admin]
+AuthCheck -->|Giáo viên| TeacherDashboard[Bảng điều khiển Giáo viên]
+AuthCheck -->|Sinh viên| StudentDashboard[Bảng điều khiển Sinh viên]
+
+%% Admin Flows
+AdminDashboard --> AdminFeatures{Chức năng Admin}
+AdminFeatures --> A1[Quản lý người dùng]
+AdminFeatures --> A2[Quản lý phòng học]
+AdminFeatures --> A3[Quản lý loại phòng]
+AdminFeatures --> A4[Quản lý thời khóa biểu]
+AdminFeatures --> A5[Quản lý đặt phòng]
+AdminFeatures --> A6[Tự động sắp xếp phòng]
+AdminFeatures --> A7[Xem thống kê hệ thống]
+
+A1 --> A1_1[Thêm/Sửa/Xóa người dùng]
+A2 --> A2_1[Thêm/Sửa/Xóa phòng học]
+A3 --> A3_1[Thêm/Sửa/Xóa loại phòng]
+A4 --> A4_1[Thêm/Sửa/Xóa thời khóa biểu]
+A5 --> A5_1[Thêm/Sửa/Xóa đặt phòng]
+A5 --> A5_2[Duyệt yêu cầu đặt phòng]
+A6 --> A6_1[Phân tích và gợi ý phòng]
+A6 --> A6_2[Xác nhận hoặc điều chỉnh]
+A7 --> A7_1[Xem báo cáo và thống kê]
+
+%% Teacher Flows
+TeacherDashboard --> TeacherFeatures{Chức năng Giáo viên}
+TeacherFeatures --> T1[Tìm kiếm phòng học]
+TeacherFeatures --> T2[Xem chi tiết phòng học]
+TeacherFeatures --> T3[Đề xuất phòng trống]
+TeacherFeatures --> T4[Đặt phòng học]
+TeacherFeatures --> T5[Quản lý đặt phòng cá nhân]
+TeacherFeatures --> T6[Xem thời khóa biểu]
+
+T1 --> T1_1[Nhập tiêu chí tìm kiếm]
+T1 --> T1_2[Xem kết quả tìm kiếm]
+T2 --> T2_1[Xem thông tin phòng]
+T2 --> T2_2[Xem danh sách thiết bị]
+T3 --> T3_1[Chọn thời gian]
+T3 --> T3_2[Xem phòng trống]
+T4 --> T4_1[Chọn phòng]
+T4 --> T4_2[Nhập thông tin đặt phòng]
+T4 --> T4_3[Xác nhận đặt phòng]
+T5 --> T5_1[Xem danh sách đặt phòng]
+T5 --> T5_2[Chỉnh sửa/Hủy đặt phòng]
+T6 --> T6_1[Xem lịch giảng dạy]
+
+%% Student Flows
+StudentDashboard --> StudentFeatures{Chức năng Sinh viên}
+StudentFeatures --> S1[Tìm kiếm phòng học]
+StudentFeatures --> S2[Xem chi tiết phòng học]
+StudentFeatures --> S3[Đặt phòng nhóm học tập]
+StudentFeatures --> S4[Quản lý đặt phòng cá nhân]
+StudentFeatures --> S5[Xem thời khóa biểu lớp]
+
+S1 --> S1_1[Nhập tiêu chí tìm kiếm]
+S1 --> S1_2[Xem kết quả tìm kiếm]
+S2 --> S2_1[Xem thông tin phòng]
+S2 --> S2_2[Xem danh sách thiết bị]
+S3 --> S3_1[Chọn phòng trống]
+S3 --> S3_2[Nhập thông tin nhóm học tập]
+S3 --> S3_3[Gửi yêu cầu đặt phòng]
+S3 --> S3_4[Chờ duyệt]
+S4 --> S4_1[Xem danh sách đặt phòng]
+S4 --> S4_2[Chỉnh sửa/Hủy đặt phòng]
+S5 --> S5_1[Xem lịch học]
+
+%% Common flows
+A5_2 -->|Duyệt| BookingApproved[Đặt phòng được duyệt]
+A5_2 -->|Từ chối| BookingRejected[Đặt phòng bị từ chối]
+
+T4_3 --> BookingProcessing[Xử lý đặt phòng]
+S3_4 --> BookingProcessing
+
+BookingProcessing -->|Giáo viên| BookingApproved
+BookingProcessing -->|Sinh viên| NeedApproval[Cần quản trị viên duyệt]
+NeedApproval --> A5_2
+
+%% Logging out
+A7_1 --> Logout[Đăng xuất]
+T6_1 --> Logout
+S5_1 --> Logout
+BookingApproved --> Logout
+BookingRejected --> Logout
+
+Logout --> End((Kết thúc))
+          </pre>
+        </div>
+      </div>
+
+      <div id="dataflow" class="tab-content">
+        <h2>Biểu Đồ Luồng Dữ Liệu (Data Flow Diagram)</h2>
+        <div class="diagram-container">
+          <pre class="mermaid">
+graph TD
+%% User Entities
+User((Người dùng))
+Admin((Quản trị viên))
+Teacher((Giáo viên))
+Student((Sinh viên))
+
+%% Database Models
+UserDB[(UserModel)]
+RoomDB[(RoomModel)]
+BookingDB[(BookingModel)]
+TimetableDB[(TimetableModel)]
+EquipmentDB[(EquipmentModel)]
+MaintenanceDB[(MaintenanceRequestModel)]
+ScheduleDB[(ScheduleModel)]
+
+%% Authentication Flow
+User -->|Đăng nhập| AuthController
+AuthController -->|Kiểm tra thông tin| UserDB
+UserDB -->|Trả về kết quả| AuthController
+AuthController -->|Điều hướng tới dashboard| User
+
+%% Admin Data Flows
+Admin -->|Quản lý người dùng| AdminController
+AdminController -->|CRUD người dùng| UserDB
+UserDB -->|Dữ liệu người dùng| AdminController
+
+Admin -->|Quản lý phòng học| AdminController
+AdminController -->|CRUD phòng học| RoomDB
+RoomDB -->|Dữ liệu phòng học| AdminController
+
+Admin -->|Quản lý thời khóa biểu| AdminController
+AdminController -->|CRUD thời khóa biểu| TimetableDB
+TimetableDB -->|Dữ liệu thời khóa biểu| AdminController
+
+Admin -->|Quản lý đặt phòng| AdminController
+AdminController -->|CRUD đặt phòng| BookingDB
+BookingDB -->|Dữ liệu đặt phòng| AdminController
+
+Admin -->|Tự động sắp xếp phòng| AdminController
+AdminController -->|Lấy phòng trống| RoomDB
+AdminController -->|Lấy thời khóa biểu| TimetableDB
+AdminController -->|Tạo đặt phòng tự động| BookingDB
+
+Admin -->|Xem thống kê| AdminController
+AdminController -->|Lấy dữ liệu thống kê| RoomDB
+AdminController -->|Lấy dữ liệu thống kê| BookingDB
+AdminController -->|Lấy dữ liệu thống kê| UserDB
+
+%% Teacher Data Flows
+Teacher -->|Tìm kiếm phòng học| TeacherController
+TeacherController -->|Tìm kiếm| RoomDB
+RoomDB -->|Kết quả tìm kiếm| TeacherController
+
+Teacher -->|Xem chi tiết phòng| TeacherController
+TeacherController -->|Lấy thông tin phòng| RoomDB
+TeacherController -->|Lấy thiết bị trong phòng| EquipmentDB
+RoomDB -->|Dữ liệu phòng học| TeacherController
+EquipmentDB -->|Dữ liệu thiết bị| TeacherController
+
+Teacher -->|Đặt phòng học| TeacherController
+TeacherController -->|Kiểm tra khả dụng| BookingDB
+TeacherController -->|Tạo đặt phòng| BookingDB
+BookingDB -->|Kết quả đặt phòng| TeacherController
+
+Teacher -->|Quản lý đặt phòng cá nhân| TeacherController
+TeacherController -->|Lấy đặt phòng của giáo viên| BookingDB
+TeacherController -->|Cập nhật đặt phòng| BookingDB
+BookingDB -->|Dữ liệu đặt phòng| TeacherController
+
+Teacher -->|Xem thời khóa biểu| TeacherController
+TeacherController -->|Lấy thời khóa biểu| TimetableDB
+TimetableDB -->|Dữ liệu thời khóa biểu| TeacherController
+
+%% Student Data Flows
+Student -->|Tìm kiếm phòng học| StudentController
+StudentController -->|Tìm kiếm| RoomDB
+RoomDB -->|Kết quả tìm kiếm| StudentController
+
+Student -->|Xem chi tiết phòng| StudentController
+StudentController -->|Lấy thông tin phòng| RoomDB
+StudentController -->|Lấy thiết bị trong phòng| EquipmentDB
+RoomDB -->|Dữ liệu phòng học| StudentController
+EquipmentDB -->|Dữ liệu thiết bị| StudentController
+
+Student -->|Đặt phòng nhóm học tập| StudentController
+StudentController -->|Kiểm tra khả dụng| BookingDB
+StudentController -->|Tạo đặt phòng chờ duyệt| BookingDB
+BookingDB -->|Kết quả đặt phòng| StudentController
+
+Student -->|Quản lý đặt phòng cá nhân| StudentController
+StudentController -->|Lấy đặt phòng của sinh viên| BookingDB
+StudentController -->|Cập nhật đặt phòng| BookingDB
+BookingDB -->|Dữ liệu đặt phòng| StudentController
+
+Student -->|Xem thời khóa biểu lớp| StudentController
+StudentController -->|Lấy thời khóa biểu| TimetableDB
+TimetableDB -->|Dữ liệu thời khóa biểu| StudentController
+
+%% Maintenance Flows
+Admin -->|Quản lý bảo trì| MaintenanceController
+MaintenanceController -->|CRUD yêu cầu bảo trì| MaintenanceDB
+MaintenanceDB -->|Dữ liệu bảo trì| MaintenanceController
+
+Teacher -->|Báo cáo vấn đề phòng học| MaintenanceController
+MaintenanceController -->|Tạo yêu cầu bảo trì| MaintenanceDB
+MaintenanceDB -->|Kết quả yêu cầu| MaintenanceController
+
+%% Equipment Flows
+Admin -->|Quản lý thiết bị| EquipmentController
+EquipmentController -->|CRUD thiết bị| EquipmentDB
+EquipmentDB -->|Dữ liệu thiết bị| EquipmentController
+          </pre>
+        </div>
+      </div>
+
+      <div id="mvc" class="tab-content">
+        <h2>Kiến Trúc MVC (MVC Architecture)</h2>
+        <div class="diagram-container">
+          <pre class="mermaid">
+graph TD
+%% User Interaction
+User((Người dùng)) --> Browser[Trình duyệt web]
+Browser --> |HTTP Request| Router
+
+%% MVC Structure
+subgraph MVC["MVC Architecture"]
+    
+    %% Controllers
+    subgraph Controllers["Controllers"]
+        AuthController[AuthController.php]
+        AdminController[AdminController.php]
+        TeacherController[TeacherController.php]
+        StudentController[StudentController.php]
+        RoomController[RoomController.php]
+        MaintenanceController[MaintenanceController.php]
+        EquipmentController[EquipmentController.php]
+    end
+    
+    %% Models
+    subgraph Models["Models"]
+        UserModel[UserModel.php]
+        RoomModel[RoomModel.php]
+        BookingModel[BookingModel.php]
+        TimetableModel[TimetableModel.php]
+        ScheduleModel[ScheduleModel.php]
+        MaintenanceRequestModel[MaintenanceRequestModel.php]
+        EquipmentModel[EquipmentModel.php]
+    end
+    
+    %% Views
+    subgraph Views["Views"]
+        AdminViews[Admin Views]
+        TeacherViews[Teacher Views]
+        StudentViews[Student Views]
+        SharedViews[Shared Views]
+    end
+    
+    %% Router
+    Router[routes.php] --> |Phân luồng yêu cầu| Controllers
+    
+    %% Controllers to Models
+    Controllers --> |Xử lý dữ liệu| Models
+    Models --> |Trả về dữ liệu| Controllers
+    
+    %% Controllers to Views
+    Controllers --> |Render| Views
+    
+    %% Helpers
+    Helpers[Helpers/] -.-> Controllers
+    Helpers -.-> Models
+    
+    %% Configuration
+    Config[Config/] -.-> Models
+    Config -.-> Controllers
+    
+end
+
+%% Database
+Models --> |SQL Queries| Database[(MySQL Database)]
+Database --> |Query Results| Models
+
+%% Response
+Views --> |HTML Response| Browser
+
+%% Specific connections
+AdminController --> AdminViews
+TeacherController --> TeacherViews
+StudentController --> StudentViews
+AuthController --> SharedViews
+
+UserModel <--> AdminController
+RoomModel <--> RoomController
+RoomModel <--> AdminController
+RoomModel <--> TeacherController
+RoomModel <--> StudentController
+BookingModel <--> AdminController
+BookingModel <--> TeacherController
+BookingModel <--> StudentController
+TimetableModel <--> AdminController
+TimetableModel <--> TeacherController
+TimetableModel <--> StudentController
+EquipmentModel <--> EquipmentController
+MaintenanceRequestModel <--> MaintenanceController
+          </pre>
+        </div>
+      </div>
+
+      <div id="database" class="tab-content">
+        <h2>Cơ Sở Dữ Liệu (Database Schema)</h2>
+        <div class="diagram-container">
+          <pre class="mermaid">
+erDiagram
+    users {
+        int id PK
+        string username
+        string email
+        string password
+        string full_name
+        enum role
+        string class_code
+        datetime created_at
+        datetime updated_at
+    }
+    
+    rooms {
+        int id PK
+        string room_number
+        string building
+        string floor
+        int capacity
+        int room_type_id FK
+        string description
+        enum status
+        datetime created_at
+        datetime updated_at
+    }
+    
+    room_types {
+        int id PK
+        string name
+        string description
+        datetime created_at
+        datetime updated_at
+    }
+    
+    equipment {
+        int id PK
+        string name
+        string description
+        int room_id FK
+        enum status
+        datetime created_at
+        datetime updated_at
+    }
+    
+    timetables {
+        int id PK
+        string class_code
+        string subject_code
+        int room_id FK
+        int teacher_id FK
+        date start_date
+        date end_date
+        enum day_of_week
+        time start_time
+        time end_time
+        string note
+        datetime created_at
+        datetime updated_at
+    }
+    
+    bookings {
+        int id PK
+        int user_id FK
+        int room_id FK
+        datetime start_time
+        datetime end_time
+        string purpose
+        enum status
+        string note
+        int approval_user_id FK
+        datetime approval_time
+        datetime created_at
+        datetime updated_at
+    }
+    
+    maintenance_requests {
+        int id PK
+        int room_id FK
+        int user_id FK
+        string issue_description
+        enum status
+        string resolution_note
+        int resolved_by_user_id FK
+        datetime resolved_at
+        datetime created_at
+        datetime updated_at
+    }
+    
+    schedules {
+        int id PK
+        int timetable_id FK
+        int room_id FK
+        date date
+        time start_time
+        time end_time
+        string note
+        datetime created_at
+        datetime updated_at
+    }
+    
+    users ||--o{ bookings : "tạo"
+    users ||--o{ maintenance_requests : "báo cáo"
+    users ||--o{ timetables : "dạy"
+    
+    rooms ||--o{ bookings : "được đặt bởi"
+    rooms ||--o{ timetables : "được lên lịch trong"
+    rooms ||--o{ equipment : "chứa"
+    rooms ||--o{ maintenance_requests : "có"
+    rooms ||--o{ schedules : "được sử dụng theo"
+    
+    room_types ||--o{ rooms : "phân loại"
+    
+    timetables ||--o{ schedules : "tạo ra"
+          </pre>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Khởi tạo Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "default",
+        securityLevel: "loose",
+        flowchart: {
+          useMaxWidth: false,
+          htmlLabels: true,
+          curve: "basis",
+        },
+        er: {
+          useMaxWidth: false,
+        },
+      });
+
+      // Chức năng chuyển tab
+      function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+
+        // Ẩn tất cả nội dung tab
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+          tabcontent[i].className = tabcontent[i].className.replace(
+            " active",
+            ""
+          );
+        }
+
+        // Bỏ active khỏi tất cả các tab
+        tablinks = document.getElementsByClassName("tab");
+        for (i = 0; i < tablinks.length; i++) {
+          tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+
+        // Hiển thị tab hiện tại và thêm class "active"
+        document.getElementById(tabName).className += " active";
+        evt.currentTarget.className += " active";
+      }
+    </script>
+  </body>
+</html>
